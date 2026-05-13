@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ELD Assessment — Teacher Review</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --teal:#1D9E75;--teal-light:#E1F5EE;--teal-dark:#085041;
+  --purple:#534AB7;--purple-light:#EEEDFE;
+  --green:#3B6D11;--green-light:#EAF3DE;
+  --red:#A32D2D;--red-light:#FCEBEB;
+  --amber:#BA7517;--amber-light:#FAEEDA;
+  --coral:#D85A30;--coral-light:#FAECE7;
+  --gray-100:#F1EFE8;--gray-200:#D3D1C7;--gray-500:#5F5E5A;--gray-900:#2C2C2A;
+  --radius:10px;--shadow:0 2px 12px rgba(0,0,0,.07);--font:'Nunito',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:#f0f4f8;color:var(--gray-900);min-height:100vh;}
+
+/* LOGIN */
+#login-screen{position:fixed;inset:0;background:rgba(8,80,65,.85);display:flex;align-items:center;justify-content:center;z-index:1000;}
+.login-box{background:white;border-radius:16px;padding:2.5rem 2rem;max-width:380px;width:90%;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.25);}
+.login-box h1{font-size:1.4rem;font-weight:800;color:var(--teal-dark);margin-bottom:.25rem;}
+.login-box p{font-size:.9rem;color:var(--gray-500);margin-bottom:1.5rem;}
+.login-box input{width:100%;border:2px solid var(--gray-200);border-radius:8px;padding:.75rem;font-family:var(--font);font-size:1rem;margin-bottom:.75rem;text-align:center;letter-spacing:.1em;}
+.login-box input:focus{outline:none;border-color:var(--teal);}
+.login-box button{width:100%;background:var(--teal);color:white;border:none;border-radius:8px;padding:.8rem;font-family:var(--font);font-size:1rem;font-weight:700;cursor:pointer;}
+.login-box button:hover{background:var(--teal-dark);}
+.login-err{color:var(--red);font-size:.85rem;margin-top:.5rem;display:none;}
+
+/* HEADER */
+.site-header{background:linear-gradient(135deg,var(--teal-dark),var(--teal));padding:1.25rem 2rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;position:sticky;top:0;z-index:50;box-shadow:0 2px 12px rgba(0,0,0,.15);}
+.site-header h1{font-size:1.2rem;font-weight:800;color:white;margin:0;}
+.site-header p{font-size:.8rem;color:rgba(255,255,255,.8);margin:2px 0 0;}
+.header-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.hbtn{padding:7px 16px;border-radius:8px;font-family:var(--font);font-size:.82rem;font-weight:700;cursor:pointer;border:none;transition:all .15s;}
+.hbtn-outline{background:rgba(255,255,255,.15);color:white;border:1.5px solid rgba(255,255,255,.4);}
+.hbtn-outline:hover{background:rgba(255,255,255,.25);}
+.hbtn-solid{background:white;color:var(--teal-dark);}
+.hbtn-solid:hover{background:var(--teal-light);}
+
+/* FILTERS */
+.filters{background:white;border-bottom:1px solid var(--gray-200);padding:.75rem 2rem;display:flex;gap:8px;flex-wrap:wrap;align-items:center;position:sticky;top:72px;z-index:40;}
+.filter-label{font-size:12px;font-weight:700;color:var(--gray-500);}
+.ftag{padding:5px 12px;border-radius:20px;font-size:.78rem;font-weight:700;cursor:pointer;border:1.5px solid var(--gray-200);background:white;color:var(--gray-500);transition:all .15s;}
+.ftag:hover{border-color:var(--teal);color:var(--teal);}
+.ftag.on{background:var(--teal);border-color:var(--teal);color:white;}
+.ftag.tier1.on{background:#2563eb;border-color:#2563eb;}
+.ftag.tier2.on{background:#7c3aed;border-color:#7c3aed;}
+.ftag.tier3.on{background:#ea580c;border-color:#ea580c;}
+
+/* STATS BAR */
+.stats-bar{background:var(--teal-light);border-bottom:1px solid #9FE1CB;padding:.75rem 2rem;display:flex;gap:2rem;flex-wrap:wrap;}
+.stat{text-align:center;}
+.stat-num{font-size:1.4rem;font-weight:800;color:var(--teal-dark);}
+.stat-label{font-size:11px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.04em;}
+
+/* MAIN CONTENT */
+.content{max-width:960px;margin:0 auto;padding:1.5rem 1.5rem 4rem;}
+
+/* UNIT SECTION */
+.unit-section{margin-bottom:2rem;}
+.unit-header{display:flex;align-items:center;gap:12px;padding:.75rem 1rem;background:linear-gradient(90deg,var(--teal-dark),var(--teal));border-radius:var(--radius);margin-bottom:1rem;cursor:pointer;}
+.unit-header h2{font-size:1rem;font-weight:800;color:white;margin:0;}
+.unit-header .unit-count{background:rgba(255,255,255,.2);color:white;font-size:11px;font-weight:800;padding:2px 8px;border-radius:12px;}
+.unit-toggle{margin-left:auto;color:rgba(255,255,255,.8);font-size:.8rem;font-weight:700;}
+
+/* QUESTION CARD */
+.q-card{background:white;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:.75rem;overflow:hidden;border-left:4px solid var(--gray-200);transition:border-color .15s;}
+.q-card.tier1{border-left-color:#2563eb;}
+.q-card.tier2{border-left-color:#7c3aed;}
+.q-card.tier3{border-left-color:#ea580c;}
+.q-card.hidden{display:none;}
+.q-header{padding:.75rem 1rem .5rem;display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;}
+.q-num{background:var(--gray-100);color:var(--gray-500);font-size:11px;font-weight:800;padding:2px 8px;border-radius:12px;white-space:nowrap;}
+.q-tier-badge{font-size:11px;font-weight:800;padding:2px 8px;border-radius:12px;white-space:nowrap;}
+.q-tier-badge.t1{background:#DBEAFE;color:#1d4ed8;}
+.q-tier-badge.t2{background:#EDE9FE;color:#7c3aed;}
+.q-tier-badge.t3{background:#FFEDD5;color:#c2410c;}
+.q-type-badge{font-size:11px;font-weight:700;color:var(--gray-500);background:var(--gray-100);padding:2px 8px;border-radius:12px;}
+.q-unit-badge{font-size:11px;font-weight:700;color:var(--teal);background:var(--teal-light);padding:2px 8px;border-radius:12px;}
+.q-body{padding:.5rem 1rem 1rem;}
+.q-text{font-size:.95rem;font-weight:700;color:var(--gray-900);margin-bottom:.75rem;line-height:1.5;}
+.q-subtext{font-size:.85rem;color:var(--teal-dark);font-weight:600;margin-bottom:.75rem;padding:6px 10px;background:var(--teal-light);border-radius:6px;}
+
+/* OPTIONS */
+.q-options{display:flex;flex-direction:column;gap:6px;margin-bottom:.5rem;}
+.q-opt{padding:7px 12px;border-radius:7px;font-size:.88rem;font-weight:600;border:1.5px solid var(--gray-200);background:white;display:flex;align-items:center;gap:8px;}
+.q-opt.correct-opt{background:var(--green-light);border-color:#86EFAC;color:var(--green);}
+.q-opt-letter{width:20px;height:20px;border-radius:50%;background:var(--gray-100);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0;}
+.q-opt.correct-opt .q-opt-letter{background:var(--green);color:white;}
+.q-note{font-size:.8rem;color:var(--amber);background:var(--amber-light);padding:5px 10px;border-radius:6px;margin-top:6px;}
+
+/* WORD BANK */
+.q-wordbank{display:flex;flex-wrap:wrap;gap:5px;margin:.5rem 0;}
+.q-wb-word{background:var(--purple-light);color:var(--purple);border-radius:20px;padding:3px 10px;font-size:.8rem;font-weight:700;}
+
+/* RUBRIC */
+.q-rubric{font-size:.8rem;color:var(--gray-500);margin-top:.5rem;background:var(--gray-100);padding:8px 12px;border-radius:6px;}
+
+/* SCENE THUMBNAIL */
+.q-scene{width:120px;height:80px;border-radius:8px;overflow:hidden;flex-shrink:0;border:1.5px solid var(--gray-200);}
+.q-scene svg{width:100%;height:100%;}
+.q-scene-row{display:flex;gap:12px;align-items:flex-start;margin-bottom:.75rem;}
+
+/* WRITING PROMPT */
+.q-write-prompt{font-size:.88rem;color:var(--gray-900);line-height:1.6;margin-bottom:.5rem;}
+.q-write-box{background:var(--gray-100);border-radius:8px;padding:.75rem;min-height:60px;font-size:.85rem;color:var(--gray-500);font-style:italic;}
+
+/* JUMP NAV */
+.jump-nav{position:fixed;right:1.5rem;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:4px;z-index:30;}
+.jump-dot{width:10px;height:10px;border-radius:50%;background:var(--gray-200);cursor:pointer;transition:all .15s;border:none;}
+.jump-dot:hover{background:var(--teal);}
+.jump-dot.t1{background:#93C5FD;}
+.jump-dot.t2{background:#C4B5FD;}
+.jump-dot.t3{background:#FED7AA;}
+
+@media(max-width:600px){
+  .content{padding:1rem .75rem 4rem;}
+  .filters{padding:.5rem 1rem;}
+  .stats-bar{padding:.5rem 1rem;gap:1rem;}
+  .jump-nav{display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div style="font-size:2.5rem;margin-bottom:.75rem;">🏫</div>
+    <h1>Teacher Review</h1>
+    <p>ELD Assessment · All Questions · Galileo</p>
+    <input type="password" id="pw-input" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button onclick="doLogin()">Enter →</button>
+    <div class="login-err" id="pw-err">Incorrect password</div>
+  </div>
+</div>
+
+<!-- MAIN (hidden until login) -->
+<div id="main-content" style="display:none;">
+
+<div class="site-header">
+  <div>
+    <h1>🏫 ELD Assessment — Teacher Review</h1>
+    <p>All 31 questions · Units 1–6 · Three Tiers</p>
+  </div>
+  <div class="header-actions">
+    <button class="hbtn hbtn-outline" onclick="window.print()">🖨 Print</button>
+    <a href="eld_assessment_formative.html" target="_blank"><button class="hbtn hbtn-outline">📝 Formative (student)</button></a>
+    <a href="eld_assessment_summative.html" target="_blank"><button class="hbtn hbtn-solid">📋 Summative (student)</button></a>
+  </div>
+</div>
+
+<div class="filters" id="filters">
+  <span class="filter-label">Show:</span>
+  <button class="ftag on" id="f-all" onclick="filterAll()">All</button>
+  <button class="ftag tier1" id="f-t1" onclick="filterTier(1)">Tier 1</button>
+  <button class="ftag tier2" id="f-t2" onclick="filterTier(2)">Tier 2</button>
+  <button class="ftag tier3" id="f-t3" onclick="filterTier(3)">Tier 3</button>
+  <span style="width:1px;background:var(--gray-200);height:20px;margin:0 4px;"></span>
+  <button class="ftag" id="f-u1" onclick="filterUnit(1)">Unit 1</button>
+  <button class="ftag" id="f-u2" onclick="filterUnit(2)">Unit 2</button>
+  <button class="ftag" id="f-u3" onclick="filterUnit(3)">Unit 3</button>
+  <button class="ftag" id="f-u4" onclick="filterUnit(4)">Unit 4</button>
+  <button class="ftag" id="f-u5" onclick="filterUnit(5)">Unit 5</button>
+  <button class="ftag" id="f-u6" onclick="filterUnit(6)">Unit 6</button>
+  <span style="width:1px;background:var(--gray-200);height:20px;margin:0 4px;"></span>
+  <button class="ftag" id="f-mc" onclick="filterType('mc')">MC</button>
+  <button class="ftag" id="f-write" onclick="filterType('write')">Writing</button>
+  <button class="ftag" id="f-gram" onclick="filterType('grammar')">Grammar</button>
+</div>
+
+<div class="stats-bar">
+  <div class="stat"><div class="stat-num">31</div><div class="stat-label">Total Questions</div></div>
+  <div class="stat"><div class="stat-num" id="vis-count">31</div><div class="stat-label">Showing</div></div>
+  <div class="stat"><div class="stat-num">6</div><div class="stat-label">Units</div></div>
+  <div class="stat"><div class="stat-num">3</div><div class="stat-label">Tiers</div></div>
+</div>
+
+<div class="content" id="q-content">
+  <!-- Questions rendered by JS -->
+</div>
+
+<div class="jump-nav" id="jump-nav"></div>
+
+</div><!-- /main-content -->
+
+<script>
+const PASSWORD = 'galileo2026';
+
+function doLogin(){
+  if(document.getElementById('pw-input').value === PASSWORD){
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('main-content').style.display='block';
+    renderAll();
+  } else {
+    document.getElementById('pw-err').style.display='block';
+    document.getElementById('pw-input').value='';
+    document.getElementById('pw-input').focus();
+  }
+}
+
+// ── SAME QUESTION DATA (duplicated for standalone page) ──
+const QUESTIONS = [
+  {id:1,tier:1,unit:'Unit 1',unitNum:1,unitName:'Welcome to School',type:'vocab-mc',
+   question:'What is a "classroom"?',
+   options:['A room in a school where students learn','A type of food','A place to sleep','A kind of game'],correct:0},
+  {id:2,tier:1,unit:'Unit 1',unitNum:1,unitName:'Welcome to School',type:'vocab-mc',
+   question:'Which word means the person who teaches you at school?',
+   options:['student','principal','teacher','librarian'],correct:2},
+  {id:3,tier:1,unit:'Unit 1',unitNum:1,unitName:'Welcome to School',type:'picture-match',
+   question:'Tap the picture that shows a "classroom."',
+   images:[{label:'classroom',correct:true},{label:'neighborhood',correct:false},{label:'food table',correct:false},{label:'world map',correct:false}]},
+  {id:4,tier:2,unit:'Unit 1',unitNum:1,unitName:'Welcome to School',type:'verb-agree',
+   prompt:'Choose the correct verb:',sentence:'The teacher _____ at the board every morning.',
+   options:['write','writes','writing','written'],correct:1,explanation:'Third-person singular adds -s: "The teacher writes."'},
+  {id:5,tier:2,unit:'Unit 1',unitNum:1,unitName:'Welcome to School',type:'prep-sentence',
+   scene:'desk_chair',prompt:'Look at the picture. Which sentence is correct?',
+   options:['The book is under the desk.','The book is on the desk.','The book is behind the desk.','The book is inside the desk.'],correct:1,prepFocus:'on'},
+  {id:6,tier:3,unit:'Unit 1',unitNum:1,unitName:'Welcome to School',type:'vocab-write',
+   prompt:'Write about school. Use at least 3 of these words.',
+   wordBank:['school','teacher','student','class','learn','desk','book','pencil','friend','read'],minWords:3},
+
+  {id:7,tier:1,unit:'Unit 2',unitNum:2,unitName:'All About Me',type:'vocab-mc',
+   question:'What does "family" mean?',
+   options:['A group of people who are related to each other','A type of school subject','A kind of clothing','A place to buy food'],correct:0},
+  {id:8,tier:1,unit:'Unit 2',unitNum:2,unitName:'All About Me',type:'native-match',
+   question:'Which English word matches the meaning? [body / el cuerpo / 身体]',
+   options:['face','body','heart','hand'],correct:1},
+  {id:9,tier:1,unit:'Unit 2',unitNum:2,unitName:'All About Me',type:'vocab-mc',
+   question:'Which word describes how you feel when something good happens?',
+   options:['angry','sad','happy','scared'],correct:2},
+  {id:10,tier:2,unit:'Unit 2',unitNum:2,unitName:'All About Me',type:'verb-agree',
+   prompt:'Choose the correct verb:',sentence:'My sister and I _____ to school together every day.',
+   options:['walks','walk','walking','walked'],correct:1,explanation:'Plural subject uses base form: "walk."'},
+  {id:11,tier:2,unit:'Unit 2',unitNum:2,unitName:'All About Me',type:'verb-agree',
+   prompt:'Choose the correct verb:',sentence:'He _____ lunch with his friends in the cafeteria.',
+   options:['eat','eating','eats','eaten'],correct:2,explanation:'Third-person singular: "He eats."'},
+  {id:12,tier:3,unit:'Unit 2',unitNum:2,unitName:'All About Me',type:'vocab-write',
+   prompt:'Write about yourself. Use at least 3 of these words.',
+   wordBank:['family','mother','father','brother','sister','body','face','happy','sad','hungry','tired','name','age','like','feel'],minWords:3},
+
+  {id:13,tier:1,unit:'Unit 3',unitNum:3,unitName:'My Community',type:'vocab-mc',
+   question:'What is a "neighborhood"?',
+   options:['The area around where you live with houses and streets','A type of school','A sport you play','A kind of food'],correct:0},
+  {id:14,tier:1,unit:'Unit 3',unitNum:3,unitName:'My Community',type:'picture-match',
+   question:'Tap the picture that shows a "neighborhood."',
+   images:[{label:'neighborhood',correct:true},{label:'classroom',correct:false},{label:'map',correct:false},{label:'food',correct:false}]},
+  {id:15,tier:1,unit:'Unit 3',unitNum:3,unitName:'My Community',type:'native-match',
+   question:'Which English word matches? [store / la tienda / 商店]',
+   options:['park','store','library','hospital'],correct:1},
+  {id:16,tier:2,unit:'Unit 3',unitNum:3,unitName:'My Community',type:'prep-sentence',
+   scene:'neighborhood',prompt:'Look at the picture. Which sentence best describes it?',
+   options:['The houses are inside the street.','The houses are next to each other on the street.','The street is above the houses.','The park is behind all the houses.'],correct:1,prepFocus:'next to'},
+  {id:17,tier:3,unit:'Unit 3',unitNum:3,unitName:'My Community',type:'vocab-write',
+   prompt:'Write about your community or neighborhood. Use at least 3 of these words.',
+   wordBank:['neighborhood','street','store','park','library','school','house','community','people','help','near','next to','bus','walk'],minWords:3},
+
+  {id:18,tier:1,unit:'Unit 4',unitNum:4,unitName:'Around the World',type:'vocab-mc',
+   question:'What is a "country"?',
+   options:['A large area of land with its own government and people','A small river','A type of food','A kind of weather'],correct:0},
+  {id:19,tier:1,unit:'Unit 4',unitNum:4,unitName:'Around the World',type:'picture-match',
+   question:'Tap the picture that shows a "map of the world."',
+   images:[{label:'world map',correct:true},{label:'neighborhood',correct:false},{label:'classroom',correct:false},{label:'person at school',correct:false}]},
+  {id:20,tier:2,unit:'Unit 4',unitNum:4,unitName:'Around the World',type:'verb-agree',
+   prompt:'Choose the correct verb:',sentence:'People around the world _____ many different languages.',
+   options:['speaks','speak','speaking','spoke'],correct:1,explanation:'Plural subject: "People speak."'},
+  {id:21,tier:2,unit:'Unit 4',unitNum:4,unitName:'Around the World',type:'prep-sentence',
+   scene:'world_map',prompt:'Look at the picture. Which sentence is correct?',
+   options:['The continents are under the ocean.','The ocean is between the continents.','The continents are above the map.','The map is inside the ocean.'],correct:1,prepFocus:'between'},
+  {id:22,tier:3,unit:'Unit 4',unitNum:4,unitName:'Around the World',type:'vocab-write',
+   prompt:'Write about a country or place in the world. Use at least 3 of these words.',
+   wordBank:['country','language','culture','map','world','continent','people','food','music','flag','travel','different','same','home','far'],minWords:3},
+
+  {id:23,tier:1,unit:'Unit 5',unitNum:5,unitName:'What in the World?',type:'vocab-mc',
+   question:'What is an "ecosystem"?',
+   options:['All the living things and their environment in one place','A type of weather','A kind of machine','A large city'],correct:0},
+  {id:24,tier:1,unit:'Unit 5',unitNum:5,unitName:'What in the World?',type:'native-match',
+   question:'Which English word matches? [habitat / hábitat / 栖息地]',
+   options:['climate','habitat','weather','ocean'],correct:1},
+  {id:25,tier:2,unit:'Unit 5',unitNum:5,unitName:'What in the World?',type:'verb-agree',
+   prompt:'Choose the correct verb:',sentence:'The sun _____ energy to all living things on Earth.',
+   options:['give','gives','giving','given'],correct:1,explanation:'Third-person singular: "The sun gives."'},
+  {id:26,tier:3,unit:'Unit 5',unitNum:5,unitName:'What in the World?',type:'vocab-write',
+   prompt:'Write about nature or animals. Use at least 3 of these words.',
+   wordBank:['animal','plant','habitat','ecosystem','food','water','sun','grow','live','eat','tree','forest','ocean','air','survive'],minWords:3},
+
+  {id:27,tier:1,unit:'Unit 6',unitNum:6,unitName:'Our Cultures',type:'vocab-mc',
+   question:'What does "culture" mean?',
+   options:['The traditions, food, music, and customs of a group of people','A type of school subject','A kind of sport','A large building'],correct:0},
+  {id:28,tier:1,unit:'Unit 6',unitNum:6,unitName:'Our Cultures',type:'native-match',
+   question:'Which English word matches? [tradition / tradición / 传统]',
+   options:['language','tradition','holiday','music'],correct:1},
+  {id:29,tier:2,unit:'Unit 6',unitNum:6,unitName:'Our Cultures',type:'verb-agree',
+   prompt:'Choose the correct verb:',sentence:'Our family _____ special food during the holiday.',
+   options:['cook','cooks','cooking','cooked'],correct:1,explanation:'Third-person singular: "Our family cooks."'},
+  {id:30,tier:3,unit:'Unit 6',unitNum:6,unitName:'Our Cultures',type:'vocab-write',
+   prompt:'Write about your culture, family traditions, or a holiday. Use at least 3 of these words.',
+   wordBank:['culture','tradition','family','food','music','dance','holiday','celebrate','language','special','together','share','wear','cook','sing'],minWords:3},
+
+  {id:31,tier:3,unit:'All Units',unitNum:0,unitName:'Cross-Unit Essay',type:'essay',
+   prompt:'Write a paragraph (5–8 sentences):',
+   question:'Think about school, your community, and the world around you. What is something important you have learned? How does it connect to your life?',
+   wordBank:['school','family','community','culture','language','learn','help','share','tradition','country','important','different','same','together','world','because','also','and','but','so']}
+];
+
+const TYPE_LABELS = {
+  'vocab-mc':'Vocab MC','native-match':'Word Match','picture-match':'Picture Match',
+  'verb-agree':'Grammar','prep-sentence':'Prep + Picture','vocab-write':'Vocab Writing','essay':'Essay'
+};
+
+const UNITS = [1,2,3,4,5,6];
+const UNIT_NAMES = {1:'Welcome to School',2:'All About Me',3:'My Community',4:'Around the World',5:'What in the World?',6:'Our Cultures'};
+
+let activeFilter = {tier:null, unit:null, type:null};
+
+function renderAll(){
+  const content = document.getElementById('q-content');
+  const jumpNav = document.getElementById('jump-nav');
+  content.innerHTML = '';
+  jumpNav.innerHTML = '';
+
+  // Group by unit
+  const units = [...new Set(QUESTIONS.map(q=>q.unit))];
+  units.forEach(unitName=>{
+    const unitQs = QUESTIONS.filter(q=>q.unit===unitName);
+    const unitNum = unitQs[0].unitNum;
+    const sectionId = 'unit-section-'+unitNum;
+
+    const section = document.createElement('div');
+    section.className = 'unit-section';
+    section.id = sectionId;
+
+    const headerColor = unitNum===0 ? 'linear-gradient(90deg,#374151,#6B7280)' :
+      ['linear-gradient(90deg,#1d4ed8,#3b82f6)',
+       'linear-gradient(90deg,#7c3aed,#a855f7)',
+       'linear-gradient(90deg,#059669,#10b981)',
+       'linear-gradient(90deg,#d97706,#f59e0b)',
+       'linear-gradient(90deg,#0891b2,#06b6d4)',
+       'linear-gradient(90deg,#dc2626,#ef4444)'][unitNum-1] || 'linear-gradient(90deg,#374151,#6B7280)';
+
+    section.innerHTML = `<div class="unit-header" style="background:${headerColor};" onclick="toggleSection('${sectionId}')">
+      <h2>${unitName}: ${unitQs[0].unitName}</h2>
+      <span class="unit-count">${unitQs.length} questions</span>
+      <span class="unit-toggle" id="toggle-${sectionId}">▾</span>
+    </div>
+    <div id="body-${sectionId}">
+      ${unitQs.map(q=>renderQCard(q)).join('')}
+    </div>`;
+
+    content.appendChild(section);
+
+    // Jump dot
+    const dot = document.createElement('button');
+    dot.className = 'jump-dot';
+    dot.title = unitName;
+    dot.onclick = ()=>{ document.getElementById(sectionId).scrollIntoView({behavior:'smooth'}); };
+    jumpNav.appendChild(dot);
+  });
+
+  updateVisCount();
+}
+
+function toggleSection(id){
+  const body = document.getElementById('body-'+id);
+  const toggle = document.getElementById('toggle-'+id);
+  if(body.style.display==='none'){ body.style.display=''; toggle.textContent='▾'; }
+  else { body.style.display='none'; toggle.textContent='▸'; }
+}
+
+function renderQCard(q){
+  const tierClass = 't'+q.tier;
+  const tierLabel = ['','Tier 1 — Word Level','Tier 2 — Sentence Level','Tier 3 — Writing'][q.tier]||'Tier 3';
+  const typeLabel = TYPE_LABELS[q.type]||q.type;
+
+  let bodyHTML = '';
+
+  if(q.type==='vocab-mc'||q.type==='verb-agree'){
+    const qText = q.type==='verb-agree'
+      ? `${q.prompt}<br><span style="color:var(--teal-dark);">"${q.sentence}"</span>`
+      : q.question;
+    bodyHTML += `<div class="q-text">${qText}</div>`;
+    bodyHTML += `<div class="q-options">`;
+    const letters=['A','B','C','D'];
+    q.options.forEach((opt,i)=>{
+      const isC = i===q.correct;
+      bodyHTML += `<div class="q-opt${isC?' correct-opt':''}">
+        <span class="q-opt-letter">${letters[i]}</span>${opt}${isC?' ✓':''}
+      </div>`;
+    });
+    bodyHTML += `</div>`;
+    if(q.explanation) bodyHTML += `<div class="q-note">💡 ${q.explanation}</div>`;
+  }
+
+  else if(q.type==='native-match'){
+    bodyHTML += `<div class="q-text">${q.question}</div>`;
+    bodyHTML += `<div class="q-options">`;
+    const letters=['A','B','C','D'];
+    q.options.forEach((opt,i)=>{
+      const isC = i===q.correct;
+      bodyHTML += `<div class="q-opt${isC?' correct-opt':''}">
+        <span class="q-opt-letter">${letters[i]}</span>${opt}${isC?' ✓':''}
+      </div>`;
+    });
+    bodyHTML += `</div>`;
+  }
+
+  else if(q.type==='picture-match'){
+    bodyHTML += `<div class="q-text">${q.question}</div>`;
+    bodyHTML += `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:.5rem;">`;
+    q.images.forEach(img=>{
+      bodyHTML += `<div style="padding:5px 12px;border-radius:8px;font-size:.82rem;font-weight:700;border:1.5px solid;${img.correct?'background:var(--green-light);border-color:#86EFAC;color:var(--green);':'background:var(--gray-100);border-color:var(--gray-200);color:var(--gray-500);'}">
+        ${img.label}${img.correct?' ✓':''}
+      </div>`;
+    });
+    bodyHTML += `</div><div class="q-note">🖼 Students see SVG illustrations of each option.</div>`;
+  }
+
+  else if(q.type==='prep-sentence'){
+    bodyHTML += `<div class="q-scene-row">`;
+    bodyHTML += `<div><div class="q-subtext">${q.prompt}</div>`;
+    if(q.prepFocus) bodyHTML += `<div style="font-size:.8rem;color:var(--purple);background:var(--purple-light);padding:3px 10px;border-radius:6px;display:inline-block;margin-bottom:.5rem;font-weight:700;">Preposition: ${q.prepFocus}</div>`;
+    bodyHTML += `<div class="q-options">`;
+    const letters=['A','B','C','D'];
+    q.options.forEach((opt,i)=>{
+      const isC = i===q.correct;
+      bodyHTML += `<div class="q-opt${isC?' correct-opt':''}">
+        <span class="q-opt-letter">${letters[i]}</span>${opt}${isC?' ✓':''}
+      </div>`;
+    });
+    bodyHTML += `</div></div></div>`;
+    bodyHTML += `<div class="q-note">🖼 Students see an SVG illustration (scene: ${q.scene})</div>`;
+  }
+
+  else if(q.type==='vocab-write'){
+    bodyHTML += `<div class="q-text">${q.prompt}</div>`;
+    bodyHTML += `<div style="font-size:.8rem;color:var(--gray-500);font-weight:700;margin-bottom:4px;">Word Bank (min ${q.minWords||3} words):</div>`;
+    bodyHTML += `<div class="q-wordbank">`;
+    q.wordBank.forEach(w=>{ bodyHTML+=`<span class="q-wb-word">${w}</span>`; });
+    bodyHTML += `</div>`;
+    bodyHTML += `<div class="q-write-box">Student writes 1–3 sentences using vocab words. AI grades with rubric in formative mode.</div>`;
+    bodyHTML += `<div class="q-note">🎙 Recording option available for students.</div>`;
+  }
+
+  else if(q.type==='essay'){
+    bodyHTML += `<div class="q-text">${q.prompt}</div>`;
+    bodyHTML += `<div class="q-subtext">"${q.question}"</div>`;
+    bodyHTML += `<div style="font-size:.8rem;color:var(--gray-500);font-weight:700;margin-bottom:4px;">Word Bank (20 words):</div>`;
+    bodyHTML += `<div class="q-wordbank">`;
+    q.wordBank.forEach(w=>{ bodyHTML+=`<span class="q-wb-word">${w}</span>`; });
+    bodyHTML += `</div>`;
+    bodyHTML += `<div class="q-write-box">Student writes a paragraph (5–8 sentences). AI grades with rubric in formative mode. Prompt translated to all 14 languages.</div>`;
+  }
+
+  return `<div class="q-card tier${q.tier}" data-tier="${q.tier}" data-unit="${q.unitNum}" data-type="${q.type}" id="qcard-${q.id}">
+    <div class="q-header">
+      <span class="q-num">Q${q.id}</span>
+      <span class="q-tier-badge ${tierClass}">${tierLabel}</span>
+      <span class="q-type-badge">${typeLabel}</span>
+      <span class="q-unit-badge">${q.unit}</span>
+    </div>
+    <div class="q-body">${bodyHTML}</div>
+  </div>`;
+}
+
+// ── FILTERS ───────────────────────────────────────────────
+function filterAll(){
+  activeFilter = {tier:null,unit:null,type:null};
+  document.querySelectorAll('.ftag').forEach(t=>t.classList.remove('on'));
+  document.getElementById('f-all').classList.add('on');
+  applyFilters();
+}
+
+function filterTier(t){
+  activeFilter.tier = activeFilter.tier===t ? null : t;
+  activeFilter.unit = null; activeFilter.type = null;
+  document.querySelectorAll('.ftag').forEach(el=>el.classList.remove('on'));
+  if(activeFilter.tier) document.getElementById('f-t'+t).classList.add('on');
+  else document.getElementById('f-all').classList.add('on');
+  applyFilters();
+}
+
+function filterUnit(u){
+  activeFilter.unit = activeFilter.unit===u ? null : u;
+  activeFilter.tier = null; activeFilter.type = null;
+  document.querySelectorAll('.ftag').forEach(el=>el.classList.remove('on'));
+  if(activeFilter.unit) document.getElementById('f-u'+u).classList.add('on');
+  else document.getElementById('f-all').classList.add('on');
+  applyFilters();
+}
+
+function filterType(t){
+  const typeMap = {mc:['vocab-mc','native-match','picture-match'],write:['vocab-write','essay'],grammar:['verb-agree','prep-sentence']};
+  activeFilter.type = activeFilter.type===t ? null : t;
+  activeFilter.tier = null; activeFilter.unit = null;
+  document.querySelectorAll('.ftag').forEach(el=>el.classList.remove('on'));
+  if(activeFilter.type) document.getElementById('f-'+t).classList.add('on');
+  else document.getElementById('f-all').classList.add('on');
+  applyFilters();
+}
+
+function applyFilters(){
+  const typeMap = {mc:['vocab-mc','native-match','picture-match'],write:['vocab-write','essay'],grammar:['verb-agree','prep-sentence']};
+  let visible = 0;
+  document.querySelectorAll('.q-card').forEach(card=>{
+    const tier = parseInt(card.dataset.tier);
+    const unit = parseInt(card.dataset.unit);
+    const type = card.dataset.type;
+    let show = true;
+    if(activeFilter.tier && tier!==activeFilter.tier) show=false;
+    if(activeFilter.unit && unit!==activeFilter.unit) show=false;
+    if(activeFilter.type && !typeMap[activeFilter.type].includes(type)) show=false;
+    card.classList.toggle('hidden',!show);
+    if(show) visible++;
+  });
+  // Show/hide unit sections based on whether they have visible cards
+  document.querySelectorAll('.unit-section').forEach(sec=>{
+    const hasVisible = sec.querySelectorAll('.q-card:not(.hidden)').length>0;
+    sec.style.display = hasVisible?'':'none';
+  });
+  updateVisCount(visible);
+}
+
+function updateVisCount(n){
+  const count = n !== undefined ? n : document.querySelectorAll('.q-card:not(.hidden)').length;
+  document.getElementById('vis-count').textContent = count;
+}
+
+document.addEventListener('keydown', e=>{
+  if(document.getElementById('login-screen').style.display!=='none'){
+    if(e.key==='Enter') doLogin();
+  }
+});
+</script>
+
+</body>
+</html>
