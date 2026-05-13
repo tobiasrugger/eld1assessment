@@ -187,40 +187,9 @@ textarea{min-height:100px;}
   </div>
 </div>
 
-<div class="screen" id="screen-tier1-intro">
-  <div class="tier-intro">
-    <div class="tier-emoji">🔤</div>
-    <h2>Tier 1 — Word Level</h2>
-    <p>Vocabulary multiple choice, picture matching, and word meaning questions. Use your native language for hints!</p>
-  </div>
-  <div class="nav-row"><button class="btn btn-primary" onclick="goToQuestion(0)">Begin →</button></div>
-</div>
-
-<div class="screen" id="screen-tier2-intro">
-  <div class="tier-intro">
-    <div class="tier-emoji">📝</div>
-    <h2>Tier 2 — Sentence Level</h2>
-    <p>Verb agreement, prepositions with pictures, and choosing the correct sentence. Think carefully about grammar!</p>
-  </div>
-  <div class="nav-row">
-    <button class="btn btn-secondary" onclick="goBack()">← Back</button>
-    <button class="btn btn-primary" onclick="goToQuestion(tier2Start)">Begin →</button>
-  </div>
-</div>
-
-<div class="screen" id="screen-tier3-intro">
-  <div class="tier-intro">
-    <div class="tier-emoji">✍️</div>
-    <h2>Tier 3 — Writing</h2>
-    <p>Write sentences and a paragraph using vocabulary words. Use the word bank and rubric to help you. You can also record your voice!</p>
-  </div>
-  <div class="nav-row">
-    <button class="btn btn-secondary" onclick="goBack()">← Back</button>
-    <button class="btn btn-primary" onclick="goToQuestion(tier3Start)">Begin →</button>
-  </div>
-</div>
 
 <div class="screen" id="screen-question">
+  <div id="tier-banner" style="border-radius:var(--radius);padding:.75rem 1.25rem;margin-bottom:.75rem;display:flex;align-items:center;gap:.6rem;"></div>
   <div class="card" id="question-card"></div>
   <div id="feedback-area"></div>
   <div class="nav-row" id="nav-row">
@@ -668,34 +637,42 @@ function startAssessment(){
   state.studentName = document.getElementById('student-name').value.trim();
   state.studentPeriod = document.getElementById('student-period').value.trim();
   state.lang = document.getElementById('lang-select').value;
-  showScreen('tier1-intro');
+  goToQuestion(0);
 }
 
 function goToQuestion(idx){
   state.currentQ = idx;
   renderQuestion(QUESTIONS[idx]);
+  renderTierBanner(QUESTIONS[idx]);
   showScreen('question');
 }
 
 function goNext(){
-  const q = QUESTIONS[state.currentQ];
   const nextIdx = state.currentQ + 1;
   if(nextIdx >= QUESTIONS.length){ finishAssessment(); return; }
-  const nextQ = QUESTIONS[nextIdx];
-  if(nextQ.tier===2 && q.tier===1){ showScreen('tier2-intro'); return; }
-  if(nextQ.tier===3 && q.tier===2){ showScreen('tier3-intro'); return; }
   goToQuestion(nextIdx);
 }
 
 function goBack(){
   if(state.currentQ > 0){
-    const prev = QUESTIONS[state.currentQ-1];
-    if(prev.tier !== QUESTIONS[state.currentQ].tier){
-      const m={1:'tier1-intro',2:'tier2-intro',3:'tier3-intro'};
-      showScreen(m[QUESTIONS[state.currentQ].tier]); return;
-    }
-    goToQuestion(state.currentQ-1);
-  } else { showScreen('tier1-intro'); }
+    goToQuestion(state.currentQ - 1);
+  } else {
+    showScreen('intro');
+  }
+}
+
+function renderTierBanner(q){
+  const banner = document.getElementById('tier-banner');
+  const configs = {
+    1:{ bg:'#DBEAFE', color:'#1d4ed8', emoji:'🔤', label:'Tier 1 — Word Level' },
+    2:{ bg:'#EDE9FE', color:'#7c3aed', emoji:'📝', label:'Tier 2 — Sentence Level' },
+    3:{ bg:'#FFEDD5', color:'#c2410c', emoji:'✍️', label:'Tier 3 — Writing' }
+  };
+  const c = configs[q.tier];
+  banner.style.background = c.bg;
+  banner.innerHTML = `<span style="font-size:1.2rem;">${c.emoji}</span>
+    <span style="font-size:.85rem;font-weight:800;color:${c.color};text-transform:uppercase;letter-spacing:.05em;">${c.label}</span>
+    <span style="margin-left:auto;font-size:.8rem;font-weight:700;color:${c.color};opacity:.7;">${q.unit}: ${q.unitName}</span>`;
 }
 
 function updateProgress(){
@@ -706,7 +683,7 @@ function updateProgress(){
   document.getElementById('progress-pct').textContent = pct+'%';
   const q = QUESTIONS[state.currentQ];
   document.getElementById('progress-label').textContent =
-    document.querySelector('.screen.active')?.id === 'screen-question'
+    state.screen === 'question'
     ? `Q${state.currentQ+1} of ${total} · ${q?.unit||''}`
     : 'ELD Assessment';
   const dots = document.getElementById('tier-dots');
