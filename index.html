@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ELD Comprehensive Assessment — Formative</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --teal: #1D9E75; --teal-light: #E1F5EE; --teal-dark: #085041;
+  --coral: #D85A30; --coral-light: #FAECE7;
+  --purple: #534AB7; --purple-light: #EEEDFE;
+  --amber: #BA7517; --amber-light: #FAEEDA;
+  --green: #3B6D11; --green-light: #EAF3DE;
+  --red: #A32D2D; --red-light: #FCEBEB;
+  --gray-100: #F1EFE8; --gray-200: #D3D1C7; --gray-500: #5F5E5A; --gray-900: #2C2C2A;
+  --white: #ffffff;
+  --radius: 12px; --radius-sm: 8px;
+  --shadow: 0 2px 16px rgba(0,0,0,0.08);
+  --font: 'Nunito', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font); background: #f7f8fa; color: var(--gray-900);
+  min-height: 100vh; padding-bottom: 3rem;
+}
+/* MODE BADGE */
+.mode-badge {
+  position: fixed; top: 12px; right: 12px; z-index: 100;
+  background: var(--teal); color: white; font-size: 11px; font-weight: 700;
+  padding: 4px 10px; border-radius: 20px; letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+/* HEADER */
+.header {
+  background: linear-gradient(135deg, var(--teal-dark) 0%, var(--teal) 100%);
+  padding: 2rem 1.5rem 3rem;
+  text-align: center; color: white;
+}
+.header h1 { font-size: 1.6rem; font-weight: 800; margin-bottom: 0.25rem; }
+.header p { font-size: 0.9rem; opacity: 0.85; }
+/* PROGRESS BAR */
+.progress-wrap {
+  max-width: 640px; margin: -1.5rem auto 0; padding: 0 1rem;
+  position: relative; z-index: 10;
+}
+.progress-card {
+  background: white; border-radius: var(--radius); padding: 1rem 1.25rem;
+  box-shadow: var(--shadow);
+}
+.progress-label { display: flex; justify-content: space-between; font-size: 12px;
+  color: var(--gray-500); margin-bottom: 6px; font-weight: 600; }
+.progress-bar { height: 8px; background: var(--gray-100); border-radius: 4px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--teal); border-radius: 4px;
+  transition: width 0.5s ease; }
+.tier-dots { display: flex; gap: 6px; margin-top: 8px; justify-content: center; }
+.tier-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gray-200); }
+.tier-dot.active { background: var(--teal); }
+.tier-dot.done { background: var(--teal-dark); }
+
+/* MAIN */
+main { max-width: 640px; margin: 1.5rem auto; padding: 0 1rem; }
+
+/* SCREEN */
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* CARD */
+.card {
+  background: white; border-radius: var(--radius); padding: 1.5rem;
+  box-shadow: var(--shadow); margin-bottom: 1rem;
+}
+.card-tier {
+  font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--teal); margin-bottom: 0.5rem;
+}
+.card-unit {
+  font-size: 11px; color: var(--gray-500); font-weight: 600; margin-bottom: 0.75rem;
+}
+.question-num {
+  font-size: 12px; color: var(--gray-500); margin-bottom: 0.4rem; font-weight: 700;
+}
+.question-text {
+  font-size: 1.05rem; font-weight: 700; line-height: 1.5; margin-bottom: 1.25rem;
+  color: var(--gray-900);
+}
+.native-hint {
+  font-size: 0.85rem; color: var(--purple); background: var(--purple-light);
+  padding: 6px 12px; border-radius: var(--radius-sm); margin-bottom: 1rem;
+  font-weight: 600; display: flex; align-items: center; gap: 6px;
+}
+
+/* OPTIONS */
+.options { display: flex; flex-direction: column; gap: 10px; }
+.opt {
+  border: 2px solid var(--gray-200); border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem; cursor: pointer; font-family: var(--font);
+  font-size: 0.95rem; font-weight: 600; text-align: left; background: white;
+  color: var(--gray-900); transition: all 0.15s; display: flex; align-items: center; gap: 10px;
+}
+.opt:hover:not(:disabled) { border-color: var(--teal); background: var(--teal-light); }
+.opt.selected { border-color: var(--teal); background: var(--teal-light); color: var(--teal-dark); }
+.opt.correct { border-color: var(--green); background: var(--green-light); color: var(--green); }
+.opt.incorrect { border-color: var(--red); background: var(--red-light); color: var(--red); }
+.opt-letter {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--gray-100); display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; flex-shrink: 0;
+}
+
+/* IMAGE OPTIONS (Tier 2 picture matching) */
+.img-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.img-opt {
+  border: 2px solid var(--gray-200); border-radius: var(--radius); cursor: pointer;
+  background: white; padding: 0.5rem; transition: all 0.15s; overflow: hidden;
+}
+.img-opt:hover:not(:disabled) { border-color: var(--teal); }
+.img-opt.selected { border-color: var(--teal); }
+.img-opt.correct { border-color: var(--green); }
+.img-opt.incorrect { border-color: var(--red); }
+.img-opt svg { width: 100%; height: 110px; display: block; border-radius: 8px; }
+.img-opt-label { font-size: 0.8rem; font-weight: 700; text-align: center;
+  padding: 4px 0 2px; color: var(--gray-900); }
+
+/* SENTENCE SCENE (Tier 2 preposition) */
+.scene-wrap { background: var(--gray-100); border-radius: var(--radius); overflow: hidden;
+  margin-bottom: 1rem; }
+.scene-wrap svg { width: 100%; height: 200px; display: block; }
+.scene-caption { font-size: 11px; color: var(--gray-500); text-align: center;
+  padding: 4px 0 8px; font-style: italic; }
+
+/* TEXT INPUT */
+.text-input-wrap { margin-bottom: 0.75rem; }
+.text-input-wrap label { font-size: 12px; font-weight: 700; color: var(--gray-500);
+  display: block; margin-bottom: 6px; }
+textarea, input[type=text] {
+  width: 100%; border: 2px solid var(--gray-200); border-radius: var(--radius-sm);
+  padding: 0.75rem; font-family: var(--font); font-size: 0.95rem; resize: vertical;
+  transition: border-color 0.15s; color: var(--gray-900);
+}
+textarea:focus, input[type=text]:focus {
+  outline: none; border-color: var(--teal);
+}
+textarea { min-height: 100px; }
+
+/* WORD BANK */
+.word-bank { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 1rem; }
+.wb-word {
+  background: var(--purple-light); color: var(--purple); border: none;
+  border-radius: 20px; padding: 4px 12px; font-size: 0.85rem; font-weight: 700;
+  cursor: pointer; font-family: var(--font); transition: all 0.12s;
+}
+.wb-word:hover { background: var(--purple); color: white; }
+.wb-word.used { opacity: 0.4; text-decoration: line-through; cursor: default; }
+.wb-hint { font-size: 11px; color: var(--gray-500); margin-bottom: 6px; font-weight: 600; }
+
+/* RUBRIC */
+.rubric-table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 0.75rem 0; }
+.rubric-table th {
+  background: var(--teal); color: white; padding: 6px 8px; text-align: center;
+  font-weight: 700;
+}
+.rubric-table td { border: 1px solid var(--gray-200); padding: 5px 7px; vertical-align: top; }
+.rubric-table tr:nth-child(even) td { background: var(--gray-100); }
+.rubric-criteria { font-weight: 700; color: var(--teal-dark); white-space: nowrap; }
+
+/* AI FEEDBACK BOX */
+.feedback-box {
+  border-radius: var(--radius); padding: 1rem 1.25rem; margin-top: 1rem;
+  animation: fadeIn 0.4s ease;
+}
+.feedback-box.loading {
+  background: var(--gray-100); border: 1px dashed var(--gray-200);
+}
+.feedback-box.correct-fb { background: var(--green-light); border: 1px solid #C0DD97; }
+.feedback-box.incorrect-fb { background: var(--coral-light); border: 1px solid #F0997B; }
+.feedback-box.partial-fb { background: var(--amber-light); border: 1px solid #FAC775; }
+.feedback-header { font-size: 12px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.06em; margin-bottom: 0.5rem; }
+.feedback-header.correct-fb { color: var(--green); }
+.feedback-header.incorrect-fb { color: var(--coral); }
+.feedback-header.partial-fb { color: var(--amber); }
+.feedback-text { font-size: 0.9rem; line-height: 1.6; color: var(--gray-900); }
+.feedback-native { font-size: 0.85rem; color: var(--purple); margin-top: 0.5rem;
+  font-weight: 600; border-top: 1px solid rgba(83,74,183,0.15); padding-top: 0.5rem; }
+.rubric-marks { display: flex; flex-direction: column; gap: 4px; margin-top: 0.5rem; }
+.rubric-mark { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; }
+.mark-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+.mark-dot.green { background: var(--green); }
+.mark-dot.red { background: var(--red); }
+.mark-dot.amber { background: var(--amber); }
+@keyframes fadeIn { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform:none; } }
+
+/* RECORDING */
+.record-wrap { display: flex; flex-direction: column; align-items: center; gap: 1rem;
+  padding: 1rem 0; }
+.record-btn {
+  width: 72px; height: 72px; border-radius: 50%; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2rem; transition: all 0.2s; font-family: var(--font);
+}
+.record-btn.idle { background: var(--teal-light); color: var(--teal); }
+.record-btn.recording { background: var(--red-light); color: var(--red); animation: pulse 1s infinite; }
+.record-btn.done { background: var(--green-light); color: var(--green); }
+@keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+.record-status { font-size: 12px; font-weight: 700; color: var(--gray-500); }
+.record-timer { font-size: 1.5rem; font-weight: 800; color: var(--teal); font-variant-numeric: tabular-nums; }
+.audio-playback { width: 100%; }
+
+/* LANGUAGE SELECTOR */
+.lang-row { display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; }
+.lang-row label { font-size: 12px; font-weight: 700; color: var(--gray-500); white-space: nowrap; }
+.lang-select {
+  flex: 1; border: 2px solid var(--gray-200); border-radius: var(--radius-sm);
+  padding: 6px 10px; font-family: var(--font); font-size: 0.9rem; background: white;
+  color: var(--gray-900);
+}
+
+/* NAV BUTTONS */
+.nav-row { display: flex; gap: 10px; margin-top: 1rem; }
+.btn {
+  flex: 1; padding: 0.8rem; border: none; border-radius: var(--radius-sm);
+  font-family: var(--font); font-size: 0.95rem; font-weight: 700; cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-primary { background: var(--teal); color: white; }
+.btn-primary:hover { background: var(--teal-dark); }
+.btn-primary:disabled { background: var(--gray-200); color: var(--gray-500); cursor: not-allowed; }
+.btn-secondary { background: white; border: 2px solid var(--gray-200); color: var(--gray-900); }
+.btn-secondary:hover { border-color: var(--teal); color: var(--teal); }
+
+/* SECTION INTRO */
+.tier-intro {
+  background: white; border-radius: var(--radius); padding: 1.5rem;
+  box-shadow: var(--shadow); text-align: center; margin-bottom: 1rem;
+}
+.tier-emoji { font-size: 2.5rem; margin-bottom: 0.5rem; }
+.tier-intro h2 { font-size: 1.2rem; font-weight: 800; color: var(--teal-dark); margin-bottom: 0.25rem; }
+.tier-intro p { font-size: 0.9rem; color: var(--gray-500); line-height: 1.6; }
+
+/* INTRO SCREEN */
+.intro-card {
+  background: white; border-radius: var(--radius); padding: 2rem 1.5rem;
+  box-shadow: var(--shadow); text-align: center; margin-top: 2rem;
+}
+.intro-card h2 { font-size: 1.4rem; font-weight: 800; color: var(--teal-dark); margin-bottom: 0.5rem; }
+.intro-card p { font-size: 0.95rem; color: var(--gray-500); line-height: 1.7; margin-bottom: 1rem; }
+.student-field { margin-bottom: 0.75rem; text-align: left; }
+.student-field label { font-size: 12px; font-weight: 700; color: var(--gray-500); display: block; margin-bottom: 4px; }
+
+/* COMPLETE SCREEN */
+.complete-card {
+  background: white; border-radius: var(--radius); padding: 2rem 1.5rem;
+  box-shadow: var(--shadow); text-align: center;
+}
+.complete-icon { font-size: 4rem; margin-bottom: 1rem; }
+.complete-card h2 { font-size: 1.4rem; font-weight: 800; color: var(--teal-dark); margin-bottom: 0.5rem; }
+.score-big { font-size: 3rem; font-weight: 800; color: var(--teal); line-height: 1; }
+.score-tier-breakdown { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 1rem 0; }
+.score-tier-box { background: var(--teal-light); border-radius: var(--radius-sm); padding: 0.75rem 0.5rem; }
+.score-tier-box .tier-label { font-size: 10px; font-weight: 800; color: var(--teal); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+.score-tier-box .tier-score { font-size: 1.4rem; font-weight: 800; color: var(--teal-dark); }
+
+/* LOADING SPINNER */
+.spinner {
+  width: 20px; height: 20px; border: 2px solid var(--gray-200);
+  border-top-color: var(--teal); border-radius: 50%;
+  animation: spin 0.6s linear infinite; display: inline-block; vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* MOBILE */
+@media (max-width: 480px) {
+  .header h1 { font-size: 1.3rem; }
+  .question-text { font-size: 0.95rem; }
+  .img-options { grid-template-columns: 1fr 1fr; }
+  .score-tier-breakdown { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="mode-badge">Summative</div>
+
+<!-- HEADER -->
+<div class="header">
+  <h1>🌟 ELD Assessment</h1>
+  <p>All 6 Units · Three Tiers · Summative Version</p>
+</div>
+
+<!-- PROGRESS -->
+<div class="progress-wrap">
+  <div class="progress-card">
+    <div class="progress-label">
+      <span id="progress-label">Introduction</span>
+      <span id="progress-pct">0%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    <div class="tier-dots" id="tier-dots"></div>
+  </div>
+</div>
+
+<main>
+
+<!-- ════════ SCREEN: INTRO ════════ -->
+<div class="screen active" id="screen-intro">
+  <div class="intro-card">
+    <div style="font-size:3rem; margin-bottom:1rem;">📚</div>
+    <h2>Welcome to the ELD Assessment</h2>
+    <p>This assessment has three tiers: Word Level, Sentence Level, and Writing. You can use your native language for support. Take your time!</p>
+    <div class="lang-row" style="margin-top:1.5rem;">
+      <label>My language:</label>
+      <select class="lang-select" id="lang-select" onchange="setLanguage(this.value)">
+        <option value="en">English only</option>
+        <option value="es">Español (Spanish)</option>
+        <option value="zh">中文 (Chinese)</option>
+        <option value="vi">Tiếng Việt (Vietnamese)</option>
+        <option value="tl">Filipino/Tagalog</option>
+        <option value="ko">한국어 (Korean)</option>
+        <option value="ar">العربية (Arabic)</option>
+        <option value="hi">हिन्दी (Hindi)</option>
+        <option value="pt">Português (Portuguese)</option>
+        <option value="ru">Русский (Russian)</option>
+        <option value="ja">日本語 (Japanese)</option>
+        <option value="bn">বাংলা (Bengali)</option>
+        <option value="so">Soomaali (Somali)</option>
+      </select>
+    </div>
+    <div class="student-field" style="margin-top:1rem;">
+      <label>Your name:</label>
+      <input type="text" id="student-name" placeholder="First Last" style="width:100%;">
+    </div>
+    <div class="student-field">
+      <label>Period / Class:</label>
+      <input type="text" id="student-period" placeholder="e.g. Period 2">
+    </div>
+    <div class="nav-row" style="margin-top:1.5rem;">
+      <button class="btn btn-primary" onclick="startAssessment()">Start Assessment →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ SCREEN: TIER 1 INTRO ════════ -->
+<div class="screen" id="screen-tier1-intro">
+  <div class="tier-intro">
+    <div class="tier-emoji">🔤</div>
+    <h2>Tier 1 — Word Level</h2>
+    <p>Vocabulary multiple choice, picture matching, and word translation. Use your native language for hints!</p>
+  </div>
+  <div class="nav-row">
+    <button class="btn btn-primary" onclick="goToQuestion(1)">Begin Tier 1 →</button>
+  </div>
+</div>
+
+<!-- ════════ SCREEN: TIER 2 INTRO ════════ -->
+<div class="screen" id="screen-tier2-intro">
+  <div class="tier-intro">
+    <div class="tier-emoji">📝</div>
+    <h2>Tier 2 — Sentence Level</h2>
+    <p>Verb agreement, prepositions with pictures, and choosing the correct sentence. Think about grammar!</p>
+  </div>
+  <div class="nav-row">
+    <button class="btn btn-secondary" onclick="goToQuestion(prevTier1Q + 1)">← Back</button>
+    <button class="btn btn-primary" onclick="goToQuestion(tier2Start)">Begin Tier 2 →</button>
+  </div>
+</div>
+
+<!-- ════════ SCREEN: TIER 3 INTRO ════════ -->
+<div class="screen" id="screen-tier3-intro">
+  <div class="tier-intro">
+    <div class="tier-emoji">✍️</div>
+    <h2>Tier 3 — Production</h2>
+    <p>Write sentences, answer short questions, and construct a paragraph. Use the rubric to guide your writing. You can record your voice too!</p>
+  </div>
+  <div class="nav-row">
+    <button class="btn btn-secondary" onclick="showTier2Intro()">← Back</button>
+    <button class="btn btn-primary" onclick="goToQuestion(tier3Start)">Begin Tier 3 →</button>
+  </div>
+</div>
+
+<!-- ════════ SCREEN: QUESTION ════════ -->
+<div class="screen" id="screen-question">
+  <div class="card" id="question-card">
+    <!-- Dynamically filled -->
+  </div>
+  <div id="feedback-area"></div>
+  <div class="nav-row" id="nav-row">
+    <button class="btn btn-secondary" id="btn-back" onclick="goBack()">← Back</button>
+    <button class="btn btn-primary" id="btn-next" onclick="goNext()" disabled>Next →</button>
+  </div>
+</div>
+
+<!-- ════════ SCREEN: COMPLETE ════════ -->
+<div class="screen" id="screen-complete">
+  <div class="complete-card">
+    <div class="complete-icon">🎉</div>
+    <h2>Assessment Complete!</h2>
+    <p style="color:var(--gray-500); margin-bottom:1rem;">Great work! Here's how you did:</p>
+    <div class="score-big" id="final-score">—</div>
+    <p style="color:var(--gray-500); font-size:0.85rem; margin:0.5rem 0 1rem;">Total Score</p>
+    <div class="score-tier-breakdown">
+      <div class="score-tier-box">
+        <div class="tier-label">Tier 1</div>
+        <div class="tier-score" id="t1-score">—</div>
+      </div>
+      <div class="score-tier-box">
+        <div class="tier-label">Tier 2</div>
+        <div class="tier-score" id="t2-score">—</div>
+      </div>
+      <div class="score-tier-box">
+        <div class="tier-label">Tier 3</div>
+        <div class="tier-score" id="t3-score">—</div>
+      </div>
+    </div>
+    <p style="font-size:0.85rem; color:var(--gray-500);">Your teacher will review all responses and add scores and comments.</p>
+  </div>
+</div>
+
+</main>
+
+<div style="text-align:center; padding: 1.5rem 1rem 2.5rem; font-family:'Nunito',sans-serif;">
+  <a href="?dashboard=1" style="font-size:12px; color:#5F5E5A; text-decoration:none; font-weight:700; border:1px solid #D3D1C7; border-radius:20px; padding:5px 14px;">
+    🏫 Teacher Dashboard
+  </a>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!--                    QUESTION DATA                      -->
+<!-- ══════════════════════════════════════════════════════ -->
+<script>
+// ── CONFIG ──────────────────────────────────────────────
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwbFr3oopIITlxKDhI5wGhEZdomWc3tmB5ZSK6NpBVisPAz-CMA4uKiruXDkCEU3T0Q/exec';
+const CLAUDE_PROXY = 'https://api.anthropic.com/v1/messages'; // handled by claude.ai context
+const MODE = 'summative';
+const DASHBOARD_PASSWORD = 'galileo2026';
+
+// ── RUBRIC (placeholder — edit rows/descriptors as needed) ──
+const RUBRIC = {
+  criteria: ['Grammar', 'Relevant Vocabulary', 'Details', 'Punctuation & Capitals'],
+  levels: ['1 — No Mastery', '2 — Some Mastery', '3 — High Mastery', '4 — Advanced'],
+  descriptors: {
+    'Grammar':              ['Many errors, unclear meaning', 'Some errors, meaning mostly clear', 'Few errors, meaning clear', 'Accurate grammar throughout'],
+    'Relevant Vocabulary':  ['No target vocabulary used', '1 target word used', '2–3 target words used correctly', '4+ target words used accurately'],
+    'Details':              ['No details or support', 'One vague detail', 'One clear relevant detail', '2+ specific supporting details'],
+    'Punctuation & Capitals':['Missing throughout', 'Present but inconsistent', 'Mostly correct', 'Fully correct']
+  }
+};
+
+// ── SVG ILLUSTRATIONS (Tier 2 scene images) ──────────────
+const SCENES = {
+  reptile_notebook: `<svg viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg">
+    <rect width="300" height="200" fill="#E8F5E9"/>
+    <rect x="20" y="120" width="260" height="60" fill="#A5D6A7" rx="4"/>
+    <rect x="180" y="80" width="70" height="90" fill="#FAFAFA" rx="4" stroke="#BDBDBD" stroke-width="2"/>
+    <rect x="185" y="88" width="60" height="4" fill="#90CAF9" rx="2"/>
+    <rect x="185" y="96" width="60" height="4" fill="#90CAF9" rx="2"/>
+    <rect x="185" y="104" width="40" height="4" fill="#90CAF9" rx="2"/>
+    <rect x="177" y="75" width="4" height="95" fill="#E57373" rx="2"/>
+    <ellipse cx="90" cy="118" rx="35" ry="15" fill="#4CAF50"/>
+    <ellipse cx="90" cy="115" rx="32" ry="13" fill="#66BB6A"/>
+    <rect x="60" y="118" width="10" height="25" fill="#4CAF50" rx="3"/>
+    <rect x="78" y="120" width="10" height="22" fill="#4CAF50" rx="3"/>
+    <rect x="96" y="120" width="10" height="22" fill="#4CAF50" rx="3"/>
+    <rect x="114" y="118" width="10" height="25" fill="#4CAF50" rx="3"/>
+    <ellipse cx="72" cy="112" rx="6" ry="5" fill="#81C784"/>
+    <circle cx="69" cy="111" r="1.5" fill="#1B5E20"/>
+    <path d="M55 115 Q45 108 35 112" stroke="#4CAF50" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M125 115 Q140 108 155 112" stroke="#4CAF50" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <text x="150" y="175" font-family="sans-serif" font-size="11" fill="#388E3C" text-anchor="middle">A lizard sits next to a notebook.</text>
+  </svg>`,
+
+  bird_tree: `<svg viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg">
+    <rect width="300" height="200" fill="#E3F2FD"/>
+    <rect x="0" y="150" width="300" height="50" fill="#A5D6A7"/>
+    <rect x="135" y="90" width="18" height="65" fill="#795548"/>
+    <ellipse cx="144" cy="80" rx="40" ry="35" fill="#2E7D32"/>
+    <ellipse cx="120" cy="90" rx="28" ry="22" fill="#388E3C"/>
+    <ellipse cx="165" cy="88" rx="28" ry="22" fill="#388E3C"/>
+    <ellipse cx="144" cy="65" rx="32" ry="28" fill="#43A047"/>
+    <ellipse cx="62" cy="125" rx="16" ry="8" fill="#64B5F6"/>
+    <ellipse cx="55" cy="121" rx="10" ry="6" fill="#90CAF9"/>
+    <ellipse cx="70" cy="121" rx="9" ry="5" fill="#42A5F5"/>
+    <circle cx="54" cy="119" r="3" fill="#1565C0"/>
+    <circle cx="53" cy="118.5" r="1" fill="white"/>
+    <path d="M44 122 Q38 118 34 122" stroke="#FFA726" stroke-width="2" fill="none"/>
+    <path d="M68 119 Q75 115 76 122" stroke="#64B5F6" stroke-width="2" fill="#64B5F6"/>
+    <text x="150" y="185" font-family="sans-serif" font-size="11" fill="#1B5E20" text-anchor="middle">A bird perches above the tree.</text>
+  </svg>`,
+
+  fish_bowl: `<svg viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg">
+    <rect width="300" height="200" fill="#F3E5F5"/>
+    <rect x="40" y="140" width="220" height="30" fill="#8D6E63" rx="4"/>
+    <ellipse cx="150" cy="120" rx="80" ry="55" fill="rgba(33,150,243,0.15)" stroke="#64B5F6" stroke-width="2"/>
+    <ellipse cx="150" cy="165" rx="70" ry="12" fill="rgba(33,150,243,0.3)"/>
+    <ellipse cx="150" cy="80" rx="50" ry="12" fill="rgba(255,255,255,0.5)" stroke="#90CAF9" stroke-width="1"/>
+    <ellipse cx="115" cy="125" rx="18" ry="10" fill="#FF7043"/>
+    <path d="M97 125 Q88 118 88 125 Q88 132 97 125" fill="#FF7043"/>
+    <circle cx="109" cy="122" r="2" fill="#212121"/>
+    <circle cx="108.5" cy="121.5" r="0.8" fill="white"/>
+    <ellipse cx="185" cy="115" rx="12" ry="7" fill="#AB47BC"/>
+    <path d="M197 115 Q204 110 204 115 Q204 120 197 115" fill="#AB47BC"/>
+    <circle cx="190" cy="113" r="1.5" fill="#212121"/>
+    <rect x="120" y="135" width="8" height="20" fill="#4CAF50" rx="2"/>
+    <rect x="150" y="130" width="6" height="25" fill="#388E3C" rx="2"/>
+    <rect x="170" y="138" width="5" height="17" fill="#4CAF50" rx="2"/>
+    <text x="150" y="185" font-family="sans-serif" font-size="11" fill="#4A148C" text-anchor="middle">The fish swim inside the bowl.</text>
+  </svg>`,
+
+  insect_flower: `<svg viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg">
+    <rect width="300" height="200" fill="#FFFDE7"/>
+    <rect x="0" y="155" width="300" height="45" fill="#DCEDC8"/>
+    <rect x="145" y="90" width="8" height="70" fill="#558B2F"/>
+    <ellipse cx="149" cy="88" rx="28" ry="28" fill="#FFEE58"/>
+    <circle cx="149" cy="88" r="14" fill="#FFA000"/>
+    <ellipse cx="149" cy="60" rx="8" ry="15" fill="#FFEE58"/>
+    <ellipse cx="149" cy="116" rx="8" ry="15" fill="#FFEE58"/>
+    <ellipse cx="121" cy="88" rx="15" ry="8" fill="#FFEE58"/>
+    <ellipse cx="177" cy="88" rx="15" ry="8" fill="#FFEE58"/>
+    <ellipse cx="79" cy="118" rx="10" ry="5" fill="#FF8F00"/>
+    <ellipse cx="73" cy="112" rx="12" ry="5" fill="rgba(255,235,59,0.7)" stroke="#FDD835" stroke-width="1"/>
+    <ellipse cx="85" cy="113" rx="11" ry="5" fill="rgba(255,235,59,0.7)" stroke="#FDD835" stroke-width="1"/>
+    <circle cx="77" cy="117" r="2.5" fill="#212121"/>
+    <line x1="70" y1="112" x2="67" y2="107" stroke="#212121" stroke-width="1"/>
+    <line x1="75" y1="111" x2="73" y2="106" stroke="#212121" stroke-width="1"/>
+    <text x="150" y="185" font-family="sans-serif" font-size="11" fill="#E65100" text-anchor="middle">A bee lands on a flower.</text>
+  </svg>`
+};
+
+// ── QUESTIONS DATA ────────────────────────────────────────
+// Each question: { id, tier, unit, type, ... }
+const QUESTIONS = [
+
+  // ══ TIER 1: WORD LEVEL ══
+
+  // T1-1: Vocabulary multiple choice (Unit 1 — Body / Health)
+  {
+    id: 1, tier: 1, unit: 'Unit 1', type: 'vocab-mc',
+    question: 'What does "skeleton" mean?',
+    nativeKey: 'skeleton',
+    options: ['The bones inside your body', 'A type of plant', 'Water in a river', 'A kind of storm'],
+    correct: 0,
+    translations: { es:'El esqueleto', zh:'骨架', vi:'bộ xương', tl:'kalansay', ko:'골격', ar:'هيكل عظمي', hi:'कंकाल', pt:'esqueleto', ru:'скелет', ja:'骨格', bn:'কঙ্কাল', so:'lafagalka' }
+  },
+
+  // T1-2: Vocabulary multiple choice (Unit 2 — Animals)
+  {
+    id: 2, tier: 1, unit: 'Unit 2', type: 'vocab-mc',
+    question: 'Which word means an animal that lives in water and breathes with gills?',
+    nativeKey: 'fish',
+    options: ['reptile', 'mammal', 'fish', 'insect'],
+    correct: 2,
+    translations: { es:'pez', zh:'鱼', vi:'cá', tl:'isda', ko:'물고기', ar:'سمكة', hi:'मछली', pt:'peixe', ru:'рыба', ja:'魚', bn:'মাছ', so:'kalluun' }
+  },
+
+  // T1-3: Picture matching (Unit 2 — Animals)
+  {
+    id: 3, tier: 1, unit: 'Unit 2', type: 'picture-match',
+    question: 'Tap the picture that shows a "reptile."',
+    images: [
+      { scene: 'reptile_notebook', label: 'lizard', correct: true },
+      { scene: 'bird_tree', label: 'bird', correct: false },
+      { scene: 'fish_bowl', label: 'fish', correct: false },
+      { scene: 'insect_flower', label: 'bee', correct: false }
+    ]
+  },
+
+  // T1-4: Native → English matching (Unit 3 — Environment/Ecosystems)
+  {
+    id: 4, tier: 1, unit: 'Unit 3', type: 'native-match',
+    question: 'Match: which English word has the same meaning?',
+    nativeWord: { es:'el bosque', zh:'森林', vi:'rừng', tl:'kagubatan', ko:'숲', ar:'الغابة', hi:'जंगल', pt:'floresta', ru:'лес', ja:'森', bn:'বন', so:'kaynta' },
+    fallbackTranslation: 'forest (the place with many trees)',
+    options: ['desert', 'forest', 'ocean', 'mountain'],
+    correct: 1
+  },
+
+  // T1-5: Vocab MC (Unit 4 — Community / Social)
+  {
+    id: 5, tier: 1, unit: 'Unit 4', type: 'vocab-mc',
+    question: 'What is a "volunteer"?',
+    nativeKey: 'volunteer',
+    options: ['Someone who works for free to help others', 'A type of building', 'A machine that cleans', 'A loud noise'],
+    correct: 0,
+    translations: { es:'voluntario/a', zh:'志愿者', vi:'tình nguyện viên', tl:'boluntaryo', ko:'자원봉사자', ar:'متطوع', hi:'स्वयंसेवक', pt:'voluntário', ru:'волонтёр', ja:'ボランティア', bn:'স্বেচ্ছাসেবক', so:'xil-u-qaate' }
+  },
+
+  // T1-6: Vocab MC (Unit 5 — Earth / Science)
+  {
+    id: 6, tier: 1, unit: 'Unit 5', type: 'vocab-mc',
+    question: 'What does "erosion" mean?',
+    nativeKey: 'erosion',
+    options: ['When water, wind, or ice slowly wears away rock or soil', 'A type of cloud formation', 'When animals migrate south', 'A kind of storm system'],
+    correct: 0,
+    translations: { es:'erosión', zh:'侵蚀', vi:'xói mòn', tl:'erosyon', ko:'침식', ar:'تآكل', hi:'अपरदन', pt:'erosão', ru:'эрозия', ja:'浸食', bn:'ক্ষয়', so:'dilis' }
+  },
+
+  // T1-7: Native → English (Unit 6 — Technology / Future)
+  {
+    id: 7, tier: 1, unit: 'Unit 6', type: 'native-match',
+    question: 'Match: which English word has the same meaning?',
+    nativeWord: { es:'la tecnología', zh:'技术', vi:'công nghệ', tl:'teknolohiya', ko:'기술', ar:'التكنولوجيا', hi:'प्रौद्योगिकी', pt:'tecnologia', ru:'технология', ja:'技術', bn:'প্রযুক্তি', so:'technologyga' },
+    fallbackTranslation: 'technology (tools, machines, digital systems)',
+    options: ['nature', 'technology', 'agriculture', 'medicine'],
+    correct: 1
+  },
+
+  // ══ TIER 2: SENTENCE LEVEL ══
+
+  // T2-1: Verb agreement
+  {
+    id: 8, tier: 2, unit: 'Unit 1', type: 'verb-agree',
+    prompt: 'Choose the correct verb form:',
+    sentence: 'The doctor _____ patients every day.',
+    options: ['help', 'helps', 'helping', 'to help'],
+    correct: 1,
+    explanation: 'Third-person singular (he/she/it) adds -s: "The doctor helps."'
+  },
+
+  // T2-2: Verb agreement
+  {
+    id: 9, tier: 2, unit: 'Unit 2', type: 'verb-agree',
+    prompt: 'Choose the correct verb form:',
+    sentence: 'We _____ animals in the wild every summer.',
+    options: ['observes', 'observe', 'is observing', 'observation'],
+    correct: 1,
+    explanation: 'Plural subject (we) uses the base form: "We observe."'
+  },
+
+  // T2-3: Preposition + image sentence
+  {
+    id: 10, tier: 2, unit: 'Unit 2', type: 'prep-sentence',
+    scene: 'reptile_notebook',
+    prompt: 'Look at the picture. Which sentence correctly describes it?',
+    options: [
+      'The lizard is inside the notebook.',
+      'The lizard sits next to the notebook.',
+      'The notebook is above the lizard.',
+      'The lizard comes from the notebook.'
+    ],
+    correct: 1,
+    prepFocus: 'next to'
+  },
+
+  // T2-4: Preposition + image sentence
+  {
+    id: 11, tier: 2, unit: 'Unit 3', type: 'prep-sentence',
+    scene: 'bird_tree',
+    prompt: 'Look at the picture. Which sentence best describes it?',
+    options: [
+      'The bird flies under the tree.',
+      'The tree grows inside the bird.',
+      'The bird is perched above the ground in the tree.',
+      'The bird runs next to the tree.'
+    ],
+    correct: 2,
+    prepFocus: 'above'
+  },
+
+  // T2-5: 4-option MC with illustrated scene (Unit 4)
+  {
+    id: 12, tier: 2, unit: 'Unit 4', type: 'prep-sentence',
+    scene: 'fish_bowl',
+    prompt: 'Which sentence is correct?',
+    options: [
+      'The fish swim on top of the bowl.',
+      'The fish are behind the bowl.',
+      'The fish live inside the bowl.',
+      'The fish jump between the bowl.'
+    ],
+    correct: 2,
+    prepFocus: 'inside'
+  },
+
+  // T2-6: Preposition + image (Unit 5 — insect/flower)
+  {
+    id: 13, tier: 2, unit: 'Unit 5', type: 'prep-sentence',
+    scene: 'insect_flower',
+    prompt: 'Look at the picture. Which sentence is correct?',
+    options: [
+      'The bee is underneath the flower.',
+      'The bee lands on the flower.',
+      'The flower grows around the bee.',
+      'The bee flies between two flowers.'
+    ],
+    correct: 1,
+    prepFocus: 'on'
+  },
+
+  // T2-7: Verb agree (Unit 6)
+  {
+    id: 14, tier: 2, unit: 'Unit 6', type: 'verb-agree',
+    prompt: 'Choose the correct verb form:',
+    sentence: 'She _____ new software applications for her school.',
+    options: ['design', 'designs', 'designing', 'designed'],
+    correct: 1,
+    explanation: 'Third-person singular present: "She designs."'
+  },
+
+  // ══ TIER 3: PRODUCTION ══
+
+  // T3-1: Sentence construction (Unit 1)
+  {
+    id: 15, tier: 3, unit: 'Unit 1', type: 'sentence-write',
+    prompt: 'Write ONE complete sentence about something a doctor does. Use at least one vocabulary word from Unit 1.',
+    placeholder: 'A doctor...',
+    rubricFocus: ['Grammar', 'Relevant Vocabulary'],
+    recordingEnabled: true
+  },
+
+  // T3-2: Short answer (Unit 2)
+  {
+    id: 16, tier: 3, unit: 'Unit 2', type: 'short-answer',
+    question: 'Name TWO differences between a reptile and a mammal. Write in complete sentences.',
+    placeholder: 'A reptile...\nA mammal...',
+    recordingEnabled: true
+  },
+
+  // T3-3: Short answer (Unit 3/4)
+  {
+    id: 17, tier: 3, unit: 'Units 3–4', type: 'short-answer',
+    question: 'Describe one way people can protect the environment in their community. Be specific.',
+    placeholder: 'People can...',
+    recordingEnabled: true
+  },
+
+  // T3-4: Essay with word bank (cross-unit synthesis)
+  {
+    id: 18, tier: 3, unit: 'All Units', type: 'essay',
+    prompt: 'Write a paragraph (5–8 sentences) answering this question:',
+    question: 'How do living things in nature depend on each other?',
+    promptTranslations: { es:'¿Cómo dependen entre sí los seres vivos en la naturaleza?', zh:'自然界中的生物如何相互依赖？', vi:'Các sinh vật sống trong tự nhiên phụ thuộc vào nhau như thế nào?', tl:'Paano ang mga buhay na bagay sa kalikasan ay nakasalalay sa isa\'t isa?', ko:'자연의 생물들은 어떻게 서로 의존합니까?', ar:'كيف تعتمد الكائنات الحية في الطبيعة على بعضها البعض؟', hi:'प्रकृति में जीवित प्राणी एक दूसरे पर कैसे निर्भर करते हैं?', pt:'Como os seres vivos na natureza dependem uns dos outros?', ru:'Как живые существа в природе зависят друг от друга?', ja:'自然界の生き物はどのように互いに依存していますか？', bn:'প্রকৃতিতে জীবন্ত জিনিসগুলি কীভাবে একে অপরের উপর নির্ভর করে?', so:'Sidee ayay xayawaanada dabiiciga ah isugu tiirsadaan?' },
+    wordBank: [
+      {en:'ecosystem', es:'ecosistema'}, {en:'habitat', es:'hábitat'}, {en:'food chain', es:'cadena alimentaria'},
+      {en:'predator', es:'depredador'}, {en:'prey', es:'presa'}, {en:'photosynthesis', es:'fotosíntesis'},
+      {en:'pollinate', es:'polinizar'}, {en:'migrate', es:'migrar'}, {en:'adapt', es:'adaptarse'},
+      {en:'survive', es:'sobrevivir'}, {en:'reproduce', es:'reproducirse'}, {en:'nutrients', es:'nutrientes'},
+      {en:'decompose', es:'descomponerse'}, {en:'oxygen', es:'oxígeno'}, {en:'organism', es:'organismo'},
+      {en:'environment', es:'medio ambiente'}, {en:'depend on', es:'depender de'}, {en:'balance', es:'equilibrio'},
+      {en:'species', es:'especie'}, {en:'population', es:'población'}
+    ],
+    placeholder: 'Living things in nature depend on each other because...',
+    recordingEnabled: false
+  }
+];
+
+const TIER2_START_IDX = QUESTIONS.findIndex(q => q.tier === 2);
+const TIER3_START_IDX = QUESTIONS.findIndex(q => q.tier === 3);
+let tier2Start = TIER2_START_IDX;
+let tier3Start = TIER3_START_IDX;
+let prevTier1Q = TIER2_START_IDX - 1;
+
+// ── STATE ─────────────────────────────────────────────────
+let state = {
+  screen: 'intro',    // 'intro' | 'tier1-intro' | 'tier2-intro' | 'tier3-intro' | 'question' | 'complete'
+  currentQ: 0,        // index into QUESTIONS
+  answers: {},        // { questionId: { value, correct, score } }
+  lang: 'en',
+  studentName: '',
+  studentPeriod: '',
+  recording: false,
+  mediaRecorder: null,
+  audioChunks: [],
+  audioBlob: null,
+  timerInterval: null,
+  timerSeconds: 0,
+  feedbackLoading: false
+};
+
+// ── LANGUAGE HELPERS ──────────────────────────────────────
+function setLanguage(lang) { state.lang = lang; }
+
+function getNativeHint(q) {
+  if (state.lang === 'en') return null;
+  if (q.translations && q.translations[state.lang]) return q.translations[state.lang];
+  if (q.nativeWord && q.nativeWord[state.lang]) return q.nativeWord[state.lang];
+  return null;
+}
+
+function getPromptTranslation(q) {
+  if (state.lang === 'en') return null;
+  if (q.promptTranslations && q.promptTranslations[state.lang]) return q.promptTranslations[state.lang];
+  return null;
+}
+
+// ── NAVIGATION ────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  state.screen = id;
+  updateProgress();
+}
+
+function startAssessment() {
+  state.studentName = document.getElementById('student-name').value.trim();
+  state.studentPeriod = document.getElementById('student-period').value.trim();
+  state.lang = document.getElementById('lang-select').value;
+  showScreen('tier1-intro');
+}
+
+function showTier2Intro() { showScreen('tier2-intro'); }
+function showTier3Intro() { showScreen('tier3-intro'); }
+
+function goToQuestion(idx) {
+  state.currentQ = idx;
+  renderQuestion(QUESTIONS[idx]);
+  showScreen('question');
+}
+
+function goNext() {
+  const q = QUESTIONS[state.currentQ];
+  const nextIdx = state.currentQ + 1;
+
+  if (nextIdx >= QUESTIONS.length) {
+    finishAssessment();
+    return;
+  }
+
+  const nextQ = QUESTIONS[nextIdx];
+  // Show tier intros between tiers
+  if (nextQ.tier === 2 && q.tier === 1) { showScreen('tier2-intro'); return; }
+  if (nextQ.tier === 3 && q.tier === 2) { showScreen('tier3-intro'); return; }
+
+  goToQuestion(nextIdx);
+}
+
+function goBack() {
+  if (state.currentQ > 0) {
+    const prevQ = QUESTIONS[state.currentQ - 1];
+    if (prevQ.tier !== QUESTIONS[state.currentQ].tier) {
+      const tierMap = { 1: 'tier1-intro', 2: 'tier2-intro', 3: 'tier3-intro' };
+      showScreen(tierMap[QUESTIONS[state.currentQ].tier]); return;
+    }
+    goToQuestion(state.currentQ - 1);
+  } else {
+    showScreen('tier1-intro');
+  }
+}
+
+// ── PROGRESS BAR ──────────────────────────────────────────
+function updateProgress() {
+  const total = QUESTIONS.length;
+  const answered = Object.keys(state.answers).length;
+  const pct = Math.round((answered / total) * 100);
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-pct').textContent = pct + '%';
+
+  const tier = state.screen === 'question' ? QUESTIONS[state.currentQ].tier : 0;
+  const label = state.screen === 'intro' ? 'Introduction' :
+    state.screen.includes('intro') ? 'Tier ' + state.screen.replace(/\D/g,'') + ' Introduction' :
+    state.screen === 'complete' ? 'Complete' :
+    `Q${state.currentQ + 1} of ${total} · Tier ${tier}`;
+  document.getElementById('progress-label').textContent = label;
+
+  // Tier dots
+  const dots = document.getElementById('tier-dots');
+  dots.innerHTML = QUESTIONS.map((q, i) => {
+    const cls = Object.keys(state.answers).includes(String(q.id)) ? 'done' :
+      i === state.currentQ ? 'active' : '';
+    return `<div class="tier-dot ${cls}" title="Q${i+1}"></div>`;
+  }).join('');
+}
+
+// ── RENDER QUESTION ───────────────────────────────────────
+function renderQuestion(q) {
+  const card = document.getElementById('question-card');
+  document.getElementById('feedback-area').innerHTML = '';
+  document.getElementById('btn-next').disabled = true;
+
+  let html = '';
+  html += `<div class="card-tier">Tier ${q.tier}</div>`;
+  html += `<div class="card-unit">${q.unit}</div>`;
+  html += `<div class="question-num">Question ${state.currentQ + 1} of ${QUESTIONS.length}</div>`;
+
+  // Native hint
+  const hint = getNativeHint(q);
+  if (hint) {
+    html += `<div class="native-hint"><span>🌍</span> ${hint}</div>`;
+  }
+
+  // Render by type
+  switch (q.type) {
+    case 'vocab-mc':
+    case 'native-match':
+      html += renderMC(q); break;
+    case 'picture-match':
+      html += renderPictureMatch(q); break;
+    case 'verb-agree':
+      html += renderVerbAgree(q); break;
+    case 'prep-sentence':
+      html += renderPrepSentence(q); break;
+    case 'sentence-write':
+    case 'short-answer':
+      html += renderWritten(q); break;
+    case 'essay':
+      html += renderEssay(q); break;
+  }
+
+  card.innerHTML = html;
+  // Restore saved answer
+  if (state.answers[q.id]) restoreAnswer(q);
+  updateProgress();
+}
+
+function renderMC(q) {
+  let html = `<div class="question-text">${q.question || q.prompt}</div>`;
+  html += `<div class="options" id="options">`;
+  const letters = ['A','B','C','D'];
+  q.options.forEach((opt, i) => {
+    html += `<button class="opt" id="opt-${i}" onclick="selectMC(${q.id}, ${i}, ${q.correct})" data-idx="${i}">
+      <span class="opt-letter">${letters[i]}</span>${opt}
+    </button>`;
+  });
+  html += `</div>`;
+  return html;
+}
+
+function renderVerbAgree(q) {
+  let html = `<div class="question-text">${q.prompt}</div>`;
+  html += `<div class="question-text" style="color:var(--teal-dark); margin-bottom:1.25rem;">"${q.sentence}"</div>`;
+  html += `<div class="options" id="options">`;
+  const letters = ['A','B','C','D'];
+  q.options.forEach((opt, i) => {
+    html += `<button class="opt" id="opt-${i}" onclick="selectMC(${q.id}, ${i}, ${q.correct})" data-idx="${i}">
+      <span class="opt-letter">${letters[i]}</span>${opt}
+    </button>`;
+  });
+  html += `</div>`;
+  return html;
+}
+
+function renderPictureMatch(q) {
+  let html = `<div class="question-text">${q.question}</div>`;
+  html += `<div class="img-options" id="img-options">`;
+  q.images.forEach((img, i) => {
+    html += `<button class="img-opt" id="imgopt-${i}" onclick="selectPicture(${q.id}, ${i})" data-correct="${img.correct}">
+      ${SCENES[img.scene] || `<svg viewBox="0 0 200 110"><rect width="200" height="110" fill="#eee"/><text x="100" y="60" text-anchor="middle" font-size="14" fill="#999">${img.label}</text></svg>`}
+      <div class="img-opt-label">${img.label}</div>
+    </button>`;
+  });
+  html += `</div>`;
+  return html;
+}
+
+function renderPrepSentence(q) {
+  let html = `<div class="scene-wrap">${SCENES[q.scene] || ''}</div>`;
+  if (q.prepFocus) html += `<div class="native-hint" style="margin-bottom:0.75rem;">🔑 Preposition focus: <strong>${q.prepFocus}</strong></div>`;
+  html += `<div class="question-text">${q.prompt}</div>`;
+  html += `<div class="options" id="options">`;
+  const letters = ['A','B','C','D'];
+  q.options.forEach((opt, i) => {
+    html += `<button class="opt" id="opt-${i}" onclick="selectMC(${q.id}, ${i}, ${q.correct})" data-idx="${i}">
+      <span class="opt-letter">${letters[i]}</span>${opt}
+    </button>`;
+  });
+  html += `</div>`;
+  return html;
+}
+
+function renderWritten(q) {
+  let html = `<div class="question-text">${q.question || q.prompt}</div>`;
+  html += `<div class="text-input-wrap">
+    <label>Your answer:</label>
+    <textarea id="written-response" placeholder="${q.placeholder || 'Write here...'}" oninput="onWrittenInput()" rows="4"></textarea>
+  </div>`;
+  if (q.recordingEnabled) html += renderRecordingUI(q.id);
+  html += renderRubricPreview();
+  html += `<button class="btn btn-primary" style="margin-top:0.5rem; width:100%;" onclick="submitWritten(${q.id})">
+    Submit Answer
+  </button>`;
+  return html;
+}
+
+function renderEssay(q) {
+  const ptrans = getPromptTranslation(q);
+  let html = `<div class="question-text">${q.prompt}</div>`;
+  html += `<div class="question-text" style="color:var(--teal-dark);">"${q.question}"</div>`;
+  if (ptrans) html += `<div class="native-hint">🌍 ${ptrans}</div>`;
+
+  // Word bank
+  html += `<div class="wb-hint">📚 Word Bank — tap to add to your writing:</div>`;
+  html += `<div class="word-bank" id="word-bank">`;
+  q.wordBank.forEach((w, i) => {
+    const display = state.lang !== 'en' && w[state.lang] ? `${w.en} (${w[state.lang]})` : w.en;
+    html += `<button class="wb-word" id="wb-${i}" onclick="insertWord('${w.en}', ${i})">${display}</button>`;
+  });
+  html += `</div>`;
+
+  html += `<div class="text-input-wrap">
+    <label>Your paragraph:</label>
+    <textarea id="written-response" placeholder="${q.placeholder}" rows="8" oninput="onWrittenInput()"></textarea>
+  </div>`;
+  html += renderRubricPreview();
+  html += `<button class="btn btn-primary" style="margin-top:0.5rem; width:100%;" onclick="submitWritten(${q.id})">
+    Submit Answer
+  </button>`;
+  return html;
+}
+
+function renderRecordingUI(qid) {
+  return `<div class="card" style="margin:0.75rem 0; background:var(--teal-light); border:1px solid #9FE1CB;">
+    <div class="card-tier" style="color:var(--teal-dark);">🎙 Optional: Record your answer aloud</div>
+    <div class="record-wrap">
+      <div class="record-timer" id="rec-timer">0:00</div>
+      <button class="record-btn idle" id="rec-btn" onclick="toggleRecording(${qid})">🎙</button>
+      <div class="record-status" id="rec-status">Tap to record</div>
+      <audio id="audio-playback" class="audio-playback" controls style="display:none; width:100%;"></audio>
+    </div>
+  </div>`;
+}
+
+function renderRubricPreview() {
+  let html = `<details style="margin-top:0.75rem;">
+    <summary style="font-size:12px; font-weight:700; color:var(--teal-dark); cursor:pointer;">📋 Scoring Rubric</summary>
+    <div style="overflow-x:auto; margin-top:8px;">
+    <table class="rubric-table">
+      <thead><tr>
+        <th>Criteria</th><th>1 — No Mastery</th><th>2 — Some</th><th>3 — High</th><th>4 — Advanced</th>
+      </tr></thead><tbody>`;
+  RUBRIC.criteria.forEach(c => {
+    html += `<tr><td class="rubric-criteria">${c}</td>`;
+    RUBRIC.descriptors[c].forEach(d => { html += `<td>${d}</td>`; });
+    html += `</tr>`;
+  });
+  html += `</tbody></table></div></details>`;
+  return html;
+}
+
+// ── INTERACTIONS ──────────────────────────────────────────
+function selectMC(qid, idx, correct) {
+  const q = QUESTIONS.find(q => q.id === qid);
+  const opts = document.querySelectorAll('.opt');
+  opts.forEach(o => { o.disabled = true; o.classList.remove('selected'); });
+  const selected = document.getElementById('opt-' + idx);
+  selected.classList.add('selected');
+  const isCorrect = idx === correct;
+  selected.classList.add(isCorrect ? 'correct' : 'incorrect');
+  if (!isCorrect) document.getElementById('opt-' + correct).classList.add('correct');
+  state.answers[qid] = { value: idx, correct: isCorrect, score: isCorrect ? 1 : 0 };
+  document.getElementById('btn-next').disabled = false;
+
+  // Formative: get AI feedback
+  if (MODE === 'formative') {
+    const context = q.type === 'verb-agree'
+      ? `Sentence: "${q.sentence}" | Correct answer: "${q.options[correct]}" | Student chose: "${q.options[idx]}". Grammar concept: ${q.explanation || 'verb agreement'}.`
+      : `Question: "${q.question || q.prompt}" | Correct answer: "${q.options[correct]}" | Student chose: "${q.options[idx]}".`;
+    getAIFeedback(isCorrect, context, qid);
+  }
+}
+
+function selectPicture(qid, idx) {
+  const q = QUESTIONS.find(q => q.id === qid);
+  const imgOpts = document.querySelectorAll('.img-opt');
+  imgOpts.forEach(o => o.disabled = true);
+  const selected = document.getElementById('imgopt-' + idx);
+  selected.classList.add('selected');
+  const isCorrect = q.images[idx].correct;
+  selected.classList.add(isCorrect ? 'correct' : 'incorrect');
+  if (!isCorrect) {
+    const correctIdx = q.images.findIndex(img => img.correct);
+    document.getElementById('imgopt-' + correctIdx).classList.add('correct');
+  }
+  state.answers[qid] = { value: idx, correct: isCorrect, score: isCorrect ? 1 : 0 };
+  document.getElementById('btn-next').disabled = false;
+  if (MODE === 'formative') {
+    const context = `Picture matching: student tapped "${q.images[idx].label}". Correct answer was "${q.images.find(i=>i.correct).label}" (reptile example). Word: reptile.`;
+    getAIFeedback(isCorrect, context, qid);
+  }
+}
+
+function onWrittenInput() {
+  const txt = document.getElementById('written-response');
+  if (txt && txt.value.trim().length > 5) {
+    // enable Next but don't auto-submit
+  }
+}
+
+function insertWord(word, idx) {
+  const ta = document.getElementById('written-response');
+  if (!ta) return;
+  const btn = document.getElementById('wb-' + idx);
+  const pos = ta.selectionStart;
+  const before = ta.value.substring(0, pos);
+  const after = ta.value.substring(pos);
+  const space = before.length && !before.endsWith(' ') ? ' ' : '';
+  ta.value = before + space + word + ' ' + after;
+  btn.classList.add('used');
+  ta.focus();
+}
+
+function submitWritten(qid) {
+  const ta = document.getElementById('written-response');
+  const value = ta ? ta.value.trim() : '';
+  if (!value) { ta.style.borderColor = 'var(--red)'; return; }
+  ta.disabled = true;
+  const submitBtn = document.querySelector(`button[onclick="submitWritten(${qid})"]`);
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Evaluating...'; }
+  state.answers[qid] = { value, score: null, type: 'written' };
+  document.getElementById('btn-next').disabled = false;
+
+  if (MODE === 'formative') {
+    getAIWrittenFeedback(qid, value);
+  }
+}
+
+// ── AI FEEDBACK ───────────────────────────────────────────
+function showFeedbackLoading() {
+  document.getElementById('feedback-area').innerHTML = `
+    <div class="feedback-box loading">
+      <span class="spinner"></span> <span style="font-size:13px; color:var(--gray-500); margin-left:8px;">Getting feedback…</span>
+    </div>`;
+}
+
+async function getAIFeedback(isCorrect, context, qid) {
+  showFeedbackLoading();
+  const langName = document.getElementById('lang-select').options[document.getElementById('lang-select').selectedIndex].text;
+  const prompt = `You are a warm, encouraging ELD teacher giving real-time formative feedback to a multilingual student (K-12). The student ${isCorrect ? 'correctly answered' : 'incorrectly answered'} a multiple choice question.
+
+Context: ${context}
+
+Give feedback in this format:
+1. One sentence in English: affirm correct OR gently correct with explanation (friendly, age-appropriate, no shame)
+2. One sentence of instructional tip (what to remember)
+${state.lang !== 'en' ? `3. Translate your full feedback into ${langName} for the student's native language support.` : ''}
+
+Keep it short (3-4 sentences total). Do not use bullet points. Be warm and encouraging.`;
+
+  try {
+    const res = await fetch(CLAUDE_PROXY, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 250,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.[0]?.text || 'Good effort! Keep going.';
+    showMCFeedback(isCorrect, text);
+  } catch(e) {
+    showMCFeedback(isCorrect, isCorrect ? '✓ Correct! Great work.' : 'Not quite — review the answer and try to remember for next time!');
+  }
+}
+
+async function getAIWrittenFeedback(qid, text) {
+  showFeedbackLoading();
+  const q = QUESTIONS.find(q => q.id === qid);
+  const langName = document.getElementById('lang-select').options[document.getElementById('lang-select').selectedIndex].text;
+
+  const rubricText = RUBRIC.criteria.map(c =>
+    `${c}: 1=${RUBRIC.descriptors[c][0]}, 2=${RUBRIC.descriptors[c][1]}, 3=${RUBRIC.descriptors[c][2]}, 4=${RUBRIC.descriptors[c][3]}`
+  ).join('\n');
+
+  const prompt = `You are a warm, encouraging ELD teacher evaluating a multilingual student's written response for formative assessment. 
+
+Prompt given to student: "${q.question || q.prompt}"
+Student wrote: "${text}"
+
+Rubric (score 1-4 per criterion):
+${rubricText}
+
+Respond with VALID JSON only (no markdown, no explanation outside JSON):
+{
+  "scores": { "Grammar": 1-4, "Relevant Vocabulary": 1-4, "Details": 1-4, "Punctuation & Capitals": 1-4 },
+  "strengths": "One sentence about what the student did well",
+  "suggestion": "One specific, actionable thing to improve",
+  "nativeFeedback": "${state.lang !== 'en' ? `Translate the strengths and suggestion into ${langName}` : ''}"
+}`;
+
+  try {
+    const res = await fetch(CLAUDE_PROXY, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 400,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    let raw = data.content?.[0]?.text || '{}';
+    raw = raw.replace(/```json|```/g,'').trim();
+    const fb = JSON.parse(raw);
+    showWrittenFeedback(fb);
+    // Store score
+    const avg = Math.round(Object.values(fb.scores).reduce((a,b)=>a+b,0) / RUBRIC.criteria.length * 10) / 10;
+    state.answers[qid].score = avg;
+  } catch(e) {
+    document.getElementById('feedback-area').innerHTML = `<div class="feedback-box partial-fb">
+      <div class="feedback-header partial-fb">Feedback</div>
+      <div class="feedback-text">Your response was submitted. Your teacher will review it and add feedback.</div>
+    </div>`;
+  }
+}
+
+function showMCFeedback(isCorrect, text) {
+  const cls = isCorrect ? 'correct-fb' : 'incorrect-fb';
+  const label = isCorrect ? '✓ Correct!' : '✗ Not quite';
+  // Split native feedback if present
+  const lines = text.split('\n').filter(l => l.trim());
+  const english = lines.slice(0, 2).join(' ');
+  const native = lines.slice(2).join(' ');
+  document.getElementById('feedback-area').innerHTML = `
+    <div class="feedback-box ${cls}">
+      <div class="feedback-header ${cls}">${label}</div>
+      <div class="feedback-text">${english}</div>
+      ${native ? `<div class="feedback-native">🌍 ${native}</div>` : ''}
+    </div>`;
+}
+
+function showWrittenFeedback(fb) {
+  const scores = fb.scores || {};
+  let marksHTML = RUBRIC.criteria.map(c => {
+    const s = scores[c] || 1;
+    const color = s >= 3 ? 'green' : s === 2 ? 'amber' : 'red';
+    return `<div class="rubric-mark"><div class="mark-dot ${color}"></div><span>${c}: ${s}/4 — ${RUBRIC.descriptors[c][s-1]}</span></div>`;
+  }).join('');
+
+  document.getElementById('feedback-area').innerHTML = `
+    <div class="feedback-box partial-fb">
+      <div class="feedback-header partial-fb">📋 Rubric Feedback</div>
+      <div class="rubric-marks">${marksHTML}</div>
+      <div class="feedback-text" style="margin-top:0.75rem;">
+        <strong>What you did well:</strong> ${fb.strengths || ''}
+      </div>
+      <div class="feedback-text" style="margin-top:0.25rem;">
+        <strong>To improve:</strong> ${fb.suggestion || ''}
+      </div>
+      ${fb.nativeFeedback ? `<div class="feedback-native">🌍 ${fb.nativeFeedback}</div>` : ''}
+    </div>`;
+}
+
+// ── RECORDING ─────────────────────────────────────────────
+async function toggleRecording(qid) {
+  const btn = document.getElementById('rec-btn');
+  const status = document.getElementById('rec-status');
+  if (!state.recording) {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      state.mediaRecorder = new MediaRecorder(stream);
+      state.audioChunks = [];
+      state.mediaRecorder.ondataavailable = e => state.audioChunks.push(e.data);
+      state.mediaRecorder.onstop = () => {
+        state.audioBlob = new Blob(state.audioChunks, { type: 'audio/webm' });
+        const url = URL.createObjectURL(state.audioBlob);
+        const audio = document.getElementById('audio-playback');
+        if (audio) { audio.src = url; audio.style.display = 'block'; }
+        clearInterval(state.timerInterval);
+        status.textContent = 'Recording saved. You can play it back.';
+        btn.className = 'record-btn done'; btn.textContent = '✓';
+        if (MODE === 'formative') getAISpokenFeedback(qid);
+      };
+      state.mediaRecorder.start();
+      state.recording = true;
+      btn.className = 'record-btn recording'; btn.textContent = '⏹';
+      status.textContent = 'Recording... tap to stop';
+      state.timerSeconds = 0;
+      state.timerInterval = setInterval(() => {
+        state.timerSeconds++;
+        const m = Math.floor(state.timerSeconds/60);
+        const s = state.timerSeconds % 60;
+        const el = document.getElementById('rec-timer');
+        if (el) el.textContent = `${m}:${s.toString().padStart(2,'0')}`;
+        if (state.timerSeconds >= 120) stopRecording();
+      }, 1000);
+    } catch(e) {
+      status.textContent = 'Microphone not available.';
+    }
+  } else {
+    stopRecording();
+  }
+}
+
+function stopRecording() {
+  if (state.mediaRecorder && state.recording) {
+    state.mediaRecorder.stop();
+    state.recording = false;
+    state.mediaRecorder.stream.getTracks().forEach(t => t.stop());
+  }
+}
+
+async function getAISpokenFeedback(qid) {
+  // Convert audio to base64 for Claude vision API (audio not directly supported; use transcription placeholder)
+  const q = QUESTIONS.find(q => q.id === qid);
+  // In production: send to Whisper API or Google Speech-to-Text, then pass transcript to Claude
+  // For now: show a placeholder feedback indicating teacher review
+  const fbArea = document.getElementById('feedback-area');
+  if (!fbArea.querySelector('.feedback-box')) {
+    fbArea.innerHTML += `<div class="feedback-box partial-fb" style="margin-top:0.5rem;">
+      <div class="feedback-header partial-fb">🎙 Speaking recorded</div>
+      <div class="feedback-text">Your recording was saved. In the full deployment, your spoken response will be automatically transcribed and evaluated by AI for pronunciation and fluency.</div>
+    </div>`;
+  }
+}
+
+// ── RESTORE SAVED ANSWER ──────────────────────────────────
+function restoreAnswer(q) {
+  const saved = state.answers[q.id];
+  if (!saved) return;
+  if (q.type === 'sentence-write' || q.type === 'short-answer' || q.type === 'essay') {
+    const ta = document.getElementById('written-response');
+    if (ta) { ta.value = saved.value; ta.disabled = true; }
+  }
+}
+
+// ── FINISH ────────────────────────────────────────────────
+function finishAssessment() {
+  const total = QUESTIONS.length;
+  const scored = QUESTIONS.filter(q => state.answers[q.id]);
+  const t1 = QUESTIONS.filter(q => q.tier === 1);
+  const t2 = QUESTIONS.filter(q => q.tier === 2);
+  const t3 = QUESTIONS.filter(q => q.tier === 3);
+
+  function tierScore(qs) {
+    const answered = qs.filter(q => state.answers[q.id] && state.answers[q.id].score !== null);
+    if (!answered.length) return '—';
+    const sum = answered.reduce((a, q) => a + (state.answers[q.id].score || 0), 0);
+    return Math.round((sum / answered.length) * 100) + '%';
+  }
+
+  document.getElementById('t1-score').textContent = tierScore(t1);
+  document.getElementById('t2-score').textContent = tierScore(t2);
+  document.getElementById('t3-score').textContent = '✓';
+  document.getElementById('final-score').textContent = scored.length + '/' + total + ' answered';
+
+  submitToDashboard();
+  showScreen('complete');
+}
+
+async function submitToDashboard() {
+  const payload = {
+    mode: MODE,
+    studentName: state.studentName,
+    period: state.studentPeriod,
+    lang: state.lang,
+    timestamp: new Date().toISOString(),
+    answers: state.answers
+  };
+  try {
+    await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  } catch(e) { console.warn('Dashboard submit failed:', e); }
+}
+
+// ── INIT ──────────────────────────────────────────────────
+updateProgress();
+</script>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!--              TEACHER DASHBOARD (Hidden)               -->
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- Access at: this_file.html?dashboard=1 -->
+<script>
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('dashboard') !== '1') return;
+
+  // Replace entire body with dashboard
+  document.addEventListener('DOMContentLoaded', () => {
+    document.body.innerHTML = buildDashboardHTML();
+    initDashboard();
+  });
+
+  function buildDashboardHTML() {
+    return `
+    <div style="font-family:'Nunito',sans-serif; max-width:900px; margin:0 auto; padding:2rem 1rem;">
+      <div style="display:flex; align-items:center; gap:1rem; margin-bottom:2rem;">
+        <div style="width:40px; height:40px; background:#1D9E75; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-size:1.2rem;">🏫</div>
+        <div>
+          <h1 style="font-size:1.4rem; font-weight:800; color:#085041; margin:0;">ELD Assessment Dashboard</h1>
+          <p style="font-size:0.85rem; color:#5F5E5A; margin:0;">Formative Version · Galileo</p>
+        </div>
+      </div>
+      <div id="db-login" style="background:white; border-radius:12px; padding:2rem; box-shadow:0 2px 16px rgba(0,0,0,0.08); max-width:400px; margin:0 auto;">
+        <h2 style="font-size:1.1rem; font-weight:700; margin-bottom:1rem;">Teacher Login</h2>
+        <input type="password" id="db-pw" placeholder="Password" style="width:100%; border:2px solid #D3D1C7; border-radius:8px; padding:0.75rem; font-family:'Nunito',sans-serif; font-size:1rem; margin-bottom:0.75rem;">
+        <button onclick="dbLogin()" style="width:100%; background:#1D9E75; color:white; border:none; border-radius:8px; padding:0.8rem; font-family:'Nunito',sans-serif; font-size:1rem; font-weight:700; cursor:pointer;">Enter Dashboard</button>
+        <p id="db-err" style="color:#A32D2D; font-size:0.85rem; margin-top:0.5rem; display:none;">Incorrect password</p>
+      </div>
+      <div id="db-content" style="display:none;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:2rem;" id="db-stats"></div>
+        <div style="background:white; border-radius:12px; padding:1.5rem; box-shadow:0 2px 16px rgba(0,0,0,0.08);">
+          <h3 style="font-size:1rem; font-weight:700; color:#085041; margin-bottom:1rem;">Student Responses</h3>
+          <div id="db-table-wrap" style="overflow-x:auto;"></div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function dbLogin() {
+    const pw = document.getElementById('db-pw').value;
+    if (pw === DASHBOARD_PASSWORD) {
+      document.getElementById('db-login').style.display = 'none';
+      document.getElementById('db-content').style.display = 'block';
+      loadDashboardData();
+    } else {
+      document.getElementById('db-err').style.display = 'block';
+    }
+  }
+  window.dbLogin = dbLogin;
+
+  async function loadDashboardData() {
+    try {
+      const res = await fetch(APPS_SCRIPT_URL + '?mode=formative');
+      const data = await res.json();
+      renderDashboard(data);
+    } catch(e) {
+      document.getElementById('db-table-wrap').innerHTML = '<p style="color:#A32D2D;">Could not load data. Check Apps Script URL.</p>';
+    }
+  }
+
+  function renderDashboard(data) {
+    const submissions = Array.isArray(data) ? data : [];
+    document.getElementById('db-stats').innerHTML = `
+      <div style="background:#E1F5EE; border-radius:8px; padding:1rem; text-align:center;">
+        <div style="font-size:11px; font-weight:800; color:#1D9E75; text-transform:uppercase; margin-bottom:4px;">Submissions</div>
+        <div style="font-size:1.8rem; font-weight:800; color:#085041;">${submissions.length}</div>
+      </div>`;
+    const rows = submissions.map(s => `
+      <tr>
+        <td style="padding:8px 10px; border-bottom:1px solid #F1EFE8;">${s.studentName || '—'}</td>
+        <td style="padding:8px 10px; border-bottom:1px solid #F1EFE8;">${s.period || '—'}</td>
+        <td style="padding:8px 10px; border-bottom:1px solid #F1EFE8;">${s.lang || 'en'}</td>
+        <td style="padding:8px 10px; border-bottom:1px solid #F1EFE8;">${new Date(s.timestamp).toLocaleDateString()}</td>
+        <td style="padding:8px 10px; border-bottom:1px solid #F1EFE8;">
+          <button onclick="addTeacherFeedback('${s.id}')" style="font-size:12px; background:var(--teal-light,#E1F5EE); border:1px solid #9FE1CB; border-radius:6px; padding:3px 10px; cursor:pointer; font-family:'Nunito',sans-serif; font-weight:700; color:#085041;">Add Feedback</button>
+        </td>
+      </tr>`).join('');
+    document.getElementById('db-table-wrap').innerHTML = `
+      <table style="width:100%; border-collapse:collapse; font-size:0.9rem; font-family:'Nunito',sans-serif;">
+        <thead>
+          <tr style="background:#F1EFE8;">
+            <th style="padding:8px 10px; text-align:left; font-weight:700; color:#085041;">Student</th>
+            <th style="padding:8px 10px; text-align:left; font-weight:700; color:#085041;">Period</th>
+            <th style="padding:8px 10px; text-align:left; font-weight:700; color:#085041;">Language</th>
+            <th style="padding:8px 10px; text-align:left; font-weight:700; color:#085041;">Date</th>
+            <th style="padding:8px 10px; text-align:left; font-weight:700; color:#085041;">Action</th>
+          </tr>
+        </thead>
+        <tbody>${rows || '<tr><td colspan="5" style="padding:1rem; color:#5F5E5A; text-align:center;">No submissions yet.</td></tr>'}</tbody>
+      </table>`;
+  }
+
+  function initDashboard() {
+    // make dbLogin accessible
+    window.addTeacherFeedback = function(id) {
+      const fb = prompt('Add feedback for student ' + id + ':');
+      if (fb) {
+        fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'teacher_feedback', id, feedback: fb })
+        }).then(() => alert('Feedback saved!'));
+      }
+    };
+  }
+})();
+</script>
+
+</body>
+</html>
