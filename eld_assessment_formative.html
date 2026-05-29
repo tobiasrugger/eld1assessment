@@ -1071,10 +1071,21 @@ function finishAssessment(){
 }
 
 async function submitToDashboard(){
-  const payload = {mode:MODE, studentName:state.studentName, period:state.studentPeriod,
-    lang:state.lang, timestamp:new Date().toISOString(), answers:state.answers};
-  try { await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify(payload)}); }
-  catch(e){ console.warn('Dashboard submit failed:',e); }
+  const payload = {
+    action: 'submitAssessment',
+    studentName: state.studentName,
+    period: state.studentPeriod,
+    lang: state.lang,
+    mode: MODE,
+    timestamp: new Date().toISOString(),
+    answers: state.answers
+  };
+  try {
+    await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  } catch(e){ console.warn('Dashboard submit failed:',e); }
 }
 
 updateProgress();
@@ -1115,9 +1126,12 @@ updateProgress();
     };
     async function loadDB(){
       try {
-        const res = await fetch('https://script.google.com/macros/s/AKfycbwbFr3oopIITlxKDhI5wGhEZdomWc3tmB5ZSK6NpBVisPAz-CMA4uKiruXDkCEU3T0Q/exec?mode=formative');
+        const res = await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'getELDSubmissions', password: 'galileo2026' })
+        });
         const data = await res.json();
-        renderDB(Array.isArray(data)?data:[]);
+        renderDB(data.ok ? (data.submissions || []) : []);
       } catch(e){ document.getElementById('db-table-wrap').innerHTML='<p style="color:#A32D2D;">Could not load data. Check Apps Script.</p>'; }
     }
     function renderDB(subs){
@@ -1130,25 +1144,32 @@ updateProgress();
         <td style="padding:8px 10px;border-bottom:1px solid #F1EFE8;">${s.studentName||'—'}</td>
         <td style="padding:8px 10px;border-bottom:1px solid #F1EFE8;">${s.period||'—'}</td>
         <td style="padding:8px 10px;border-bottom:1px solid #F1EFE8;">${s.lang||'en'}</td>
-        <td style="padding:8px 10px;border-bottom:1px solid #F1EFE8;">${new Date(s.timestamp).toLocaleDateString()}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #F1EFE8;">${s.t1Correct||0}/${s.t1Total||0}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #F1EFE8;">${s.t2Correct||0}/${s.t2Total||0}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #F1EFE8;">${s.writtenCount||0} written</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #F1EFE8;">${s.timestamp ? new Date(s.timestamp).toLocaleDateString() : '—'}</td>
         <td style="padding:8px 10px;border-bottom:1px solid #F1EFE8;">
-          <button onclick="addFB('${s.id}')" style="font-size:12px;background:#E1F5EE;border:1px solid #9FE1CB;border-radius:6px;padding:3px 10px;cursor:pointer;font-family:'Nunito',sans-serif;font-weight:700;color:#085041;">Add Feedback</button>
+          ${s.feedback?`<span style="font-size:11px;color:#3B6D11;">✓ </span>`:''}
+          <button onclick="addFB('${s.submissionId}','${(s.studentName||'').replace(/'/g,"\\'")}');loadDB()" style="font-size:12px;background:#E1F5EE;border:1px solid #9FE1CB;border-radius:6px;padding:3px 10px;cursor:pointer;font-family:'Nunito',sans-serif;font-weight:700;color:#085041;">Add Feedback</button>
         </td></tr>`).join('');
       document.getElementById('db-table-wrap').innerHTML=`
         <table style="width:100%;border-collapse:collapse;font-size:.9rem;font-family:'Nunito',sans-serif;">
           <thead><tr style="background:#F1EFE8;">
             <th style="padding:8px 10px;text-align:left;font-weight:700;color:#085041;">Student</th>
             <th style="padding:8px 10px;text-align:left;font-weight:700;color:#085041;">Period</th>
-            <th style="padding:8px 10px;text-align:left;font-weight:700;color:#085041;">Language</th>
+            <th style="padding:8px 10px;text-align:left;font-weight:700;color:#085041;">Lang</th>
+            <th style="padding:8px 10px;text-align:left;font-weight:700;color:#085041;">Tier 1</th>
+            <th style="padding:8px 10px;text-align:left;font-weight:700;color:#085041;">Tier 2</th>
+            <th style="padding:8px 10px;text-align:left;font-weight:700;color:#085041;">Writing</th>
             <th style="padding:8px 10px;text-align:left;font-weight:700;color:#085041;">Date</th>
-            <th style="padding:8px 10px;text-align:left;font-weight:700;color:#085041;">Action</th>
+            <th style="padding:8px 10px;text-align:left;font-weight:700;color:#085041;">Feedback</th>
           </tr></thead>
-          <tbody>${rows||'<tr><td colspan="5" style="padding:1rem;color:#5F5E5A;text-align:center;">No submissions yet.</td></tr>'}</tbody>
+          <tbody>${rows||'<tr><td colspan="8" style="padding:1rem;color:#5F5E5A;text-align:center;">No submissions yet.</td></tr>'}</tbody>
         </table>`;
-      window.addFB = function(id){
-        const fb=prompt('Feedback for student '+id+':');
-        if(fb) fetch('https://script.google.com/macros/s/AKfycbwbFr3oopIITlxKDhI5wGhEZdomWc3tmB5ZSK6NpBVisPAz-CMA4uKiruXDkCEU3T0Q/exec',
-          {method:'POST',body:JSON.stringify({action:'teacher_feedback',id,feedback:fb})})
+      window.addFB = function(id, name){
+        const fb=prompt('Feedback for ' + name + ':');
+        if(fb) fetch(APPS_SCRIPT_URL,
+          {method:'POST',body:JSON.stringify({action:'saveELDFeedback',password:'galileo2026',submissionId:id,studentName:name,feedback:fb})})
           .then(()=>alert('Saved!'));
       };
     }
