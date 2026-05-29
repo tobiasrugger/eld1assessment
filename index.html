@@ -746,7 +746,7 @@ function renderPictureMatch(q){
   q.images.forEach((img,i)=>{
     html += `<button class="img-opt" id="imgopt-${i}" onclick="selectPicture(${q.id},${i})" data-correct="${img.correct}">
       ${SCENES[img.scene]||''}
-      <div class="img-opt-label">${img.label}</div></button>`;
+    </button>`;
   });
   return html + '</div>';
 }
