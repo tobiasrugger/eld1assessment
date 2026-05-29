@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ELD Assessment — Formative</title>
+<title>ELD Assessment — Summative</title>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -135,10 +135,10 @@ textarea{min-height:100px;}
 </style>
 </head>
 <body>
-<div class="mode-badge">Formative</div>
+<div class="mode-badge">Summative</div>
 <div class="header">
   <h1>🌟 ELD Assessment</h1>
-  <p>Units 1–6 · Three Tiers · Formative Version</p>
+  <p>Units 1–6 · Three Tiers · Summative Version</p>
 </div>
 <div class="progress-wrap">
   <div class="progress-card">
@@ -222,7 +222,7 @@ textarea{min-height:100px;}
 <script>
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwbFr3oopIITlxKDhI5wGhEZdomWc3tmB5ZSK6NpBVisPAz-CMA4uKiruXDkCEU3T0Q/exec';
 const CLAUDE_PROXY = 'https://api.anthropic.com/v1/messages';
-const MODE = 'formative';
+const MODE = 'summative';
 const DASHBOARD_PASSWORD = 'galileo2026';
 
 const RUBRIC = {
@@ -787,7 +787,7 @@ function renderVocabWrite(q){
     <textarea id="written-response" placeholder="${q.placeholder}" rows="4" oninput="onWrittenInput()"></textarea></div>`;
   if(q.recordingEnabled) html += renderRecordingUI(q.id);
   html += renderRubricPreview();
-  html += `<button class="btn btn-primary" style="margin-top:.5rem;width:100%;" onclick="submitWritten(${q.id})">Submit & Get Feedback</button>`;
+  html += `<button class="btn btn-primary" style="margin-top:.5rem;width:100%;" onclick="submitWritten(${q.id})">Submit Answer</button>`;
   return html;
 }
 
@@ -806,7 +806,7 @@ function renderEssay(q){
   html += `<div class="text-input-wrap"><label>Your paragraph:</label>
     <textarea id="written-response" placeholder="${q.placeholder}" rows="8" oninput="onWrittenInput()"></textarea></div>`;
   html += renderRubricPreview();
-  html += `<button class="btn btn-primary" style="margin-top:.5rem;width:100%;" onclick="submitWritten(${q.id})">Submit & Get Feedback</button>`;
+  html += `<button class="btn btn-primary" style="margin-top:.5rem;width:100%;" onclick="submitWritten(${q.id})">Submit Answer</button>`;
   return html;
 }
 
@@ -1090,7 +1090,7 @@ updateProgress();
       <div style="display:flex;align-items:center;gap:1rem;margin-bottom:2rem;">
         <div style="background:#1D9E75;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:1.2rem;">🏫</div>
         <div><h1 style="font-size:1.4rem;font-weight:800;color:#085041;margin:0;">ELD Assessment Dashboard</h1>
-        <p style="font-size:.85rem;color:#5F5E5A;margin:0;">Formative · Galileo</p></div>
+        <p style="font-size:.85rem;color:#5F5E5A;margin:0;">Summative · Galileo</p></div>
       </div>
       <div id="db-login" style="background:white;border-radius:12px;padding:2rem;box-shadow:0 2px 16px rgba(0,0,0,.08);max-width:400px;margin:0 auto;">
         <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:1rem;">Teacher Login</h2>
