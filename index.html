@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" translate="no">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="google" content="notranslate">
 <title>ELD Assessment — Summative</title>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -132,9 +133,25 @@ textarea{min-height:100px;}
 .img-opt svg{width:100%;height:110px;display:block;border-radius:8px;}
 .img-opt-label{font-size:.8rem;font-weight:700;text-align:center;padding:4px 0 2px;color:var(--gray-900);}
 @media(max-width:480px){.header h1{font-size:1.3rem;}.question-text{font-size:.95rem;}.score-tier-breakdown{grid-template-columns:1fr;}}
+/* LOCKDOWN */
+.lockdown-overlay{position:fixed;inset:0;z-index:9999;background:rgba(8,80,65,.97);display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;}
+.lockdown-overlay.show{display:flex;}
+.lockdown-overlay h2{font-size:1.5rem;font-weight:800;color:white;margin-bottom:.75rem;}
+.lockdown-overlay p{font-size:.95rem;color:rgba(255,255,255,.85);margin-bottom:1.5rem;line-height:1.6;max-width:400px;}
+.lockdown-warn{font-size:.85rem;color:#FCD34D;font-weight:700;margin-bottom:1rem;}
+.lockdown-btn{background:white;color:var(--teal-dark);border:none;border-radius:10px;padding:.85rem 2rem;font-family:var(--font);font-size:1rem;font-weight:800;cursor:pointer;}
 </style>
 </head>
 <body>
+
+<!-- LOCKDOWN OVERLAY -->
+<div class="lockdown-overlay" id="lockdown-overlay">
+  <div style="font-size:3rem;margin-bottom:1rem;">⚠️</div>
+  <h2>Please stay on this page</h2>
+  <p>You left the assessment window. Your teacher can see when this happens. Please return to the test.</p>
+  <div class="lockdown-warn" id="lockdown-warn-count"></div>
+  <button class="lockdown-btn" onclick="dismissLockdown()">Return to Assessment</button>
+</div>
 <div class="mode-badge">Summative</div>
 <div class="header">
   <h1>🌟 ELD Assessment</h1>
@@ -637,6 +654,7 @@ function startAssessment(){
   state.studentName = document.getElementById('student-name').value.trim();
   state.studentPeriod = document.getElementById('student-period').value.trim();
   state.lang = document.getElementById('lang-select').value;
+  enableLockdown();
   goToQuestion(0);
 }
 
@@ -1083,17 +1101,81 @@ async function submitToDashboard(){
     period: state.studentPeriod,
     lang: state.lang,
     mode: MODE,
+    infractions: infractions,
     timestamp: new Date().toISOString(),
     answers: state.answers
   };
   try {
-    await fetch(APPS_SCRIPT_URL, {
+    const res = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
       redirect: 'follow',
       body: JSON.stringify(payload)
     });
-  } catch(e){ console.warn('Dashboard submit failed:',e); }
+    const text = await res.text();
+    console.log('Submit status:', res.status, res.url);
+    console.log('Submit response:', text);
+  } catch(e){
+    console.warn('Dashboard submit failed:', e);
+    // Fallback: try GET with encoded data (bypasses CORS preflight)
+    try {
+      const fallbackUrl = APPS_SCRIPT_URL + '?action=submitAssessment&studentName=' +
+        encodeURIComponent(state.studentName) + '&period=' +
+        encodeURIComponent(state.studentPeriod) + '&lang=' + state.lang +
+        '&mode=' + MODE;
+      await fetch(fallbackUrl, { redirect: 'follow' });
+    } catch(e2){ console.warn('Fallback also failed:', e2); }
+  }
 }
+
+// ── LOCKDOWN ──────────────────────────────────────────────
+let lockdownActive = false;
+let infractions = 0;
+
+function enableLockdown() {
+  lockdownActive = true;
+  const el = document.documentElement;
+  if (el.requestFullscreen) el.requestFullscreen().catch(()=>{});
+  else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  history.pushState(null, '', location.href);
+  window.addEventListener('popstate', function() {
+    history.pushState(null, '', location.href);
+  });
+  document.addEventListener('contextmenu', e => e.preventDefault());
+  document.addEventListener('keydown', function(e) {
+    if (!lockdownActive) return;
+    if ((e.ctrlKey || e.metaKey) && ['c','v','u','s','a','p'].includes(e.key.toLowerCase())) e.preventDefault();
+    if (e.key === 'F12') e.preventDefault();
+  });
+}
+
+function triggerLockdownWarning() {
+  if (!lockdownActive || state.screen === 'intro' || state.screen === 'complete') return;
+  infractions++;
+  state.infractions = infractions;
+  document.getElementById('lockdown-warn-count').textContent =
+    `Tab switch detected: ${infractions} time${infractions > 1 ? 's' : ''} — your teacher will see this.`;
+  document.getElementById('lockdown-overlay').classList.add('show');
+}
+
+function dismissLockdown() {
+  document.getElementById('lockdown-overlay').classList.remove('show');
+  const el = document.documentElement;
+  if (el.requestFullscreen) el.requestFullscreen().catch(()=>{});
+  else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+}
+
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden) triggerLockdownWarning();
+});
+window.addEventListener('blur', function() {
+  triggerLockdownWarning();
+});
+document.addEventListener('fullscreenchange', function() {
+  if (!document.fullscreenElement && lockdownActive &&
+      state.screen !== 'intro' && state.screen !== 'complete') {
+    triggerLockdownWarning();
+  }
+});
 
 updateProgress();
 </script>
