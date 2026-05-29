@@ -196,7 +196,16 @@ textarea{min-height:100px;}
     </div>
     <div class="student-field">
       <label>Period / Class:</label>
-      <input type="text" id="student-period" placeholder="e.g. Period 2">
+      <select id="student-period" style="width:100%;border:2px solid var(--gray-200);border-radius:var(--radius-sm);padding:.75rem;font-family:var(--font);font-size:.95rem;color:var(--gray-900);">
+      <option value="">Select period...</option>
+      <option value="1">Period 1</option>
+      <option value="2">Period 2</option>
+      <option value="3">Period 3</option>
+      <option value="4">Period 4</option>
+      <option value="5">Period 5</option>
+      <option value="6">Period 6</option>
+      <option value="7">Period 7</option>
+    </select>
     </div>
     <div class="nav-row" style="margin-top:1.5rem;">
       <button class="btn btn-primary" onclick="startAssessment()">Start Assessment →</button>
@@ -1136,11 +1145,156 @@ function finishAssessment(){
   document.getElementById('t1-score').textContent = tierScore(t1);
   document.getElementById('t2-score').textContent = tierScore(t2);
   document.getElementById('final-score').textContent = Object.keys(state.answers).length+'/'+QUESTIONS.length;
-  submitToDashboard();
+  const reportHTML = await generateStudentReport();
+  const reportUrl = await uploadStudentReport(reportHTML);
+  state.reportUrl = reportUrl;
+  submitToDashboard(reportUrl);
   showScreen('complete');
+
+  // Show report link on complete screen
+  if (reportUrl) {
+    setTimeout(()=>{
+      const el = document.getElementById('final-score');
+      if(el && el.parentNode) {
+        const link = document.createElement('div');
+        link.style.cssText = 'margin-top:1rem;';
+        link.innerHTML = `<a href="${reportUrl}" target="_blank" style="background:#1D9E75;color:white;padding:.7rem 1.5rem;border-radius:8px;text-decoration:none;font-weight:700;font-size:.9rem;">📄 View Full Report</a>`;
+        el.parentNode.insertBefore(link, el.nextSibling.nextSibling);
+      }
+    }, 500);
+  }
 }
 
-async function submitToDashboard(){
+async function generateStudentReport() {
+  // Build a self-contained HTML report for this student
+  const q_data = QUESTIONS;
+  const answers = state.answers;
+  const name = state.studentName || 'Student';
+  const period = state.studentPeriod || '';
+  const timestamp = new Date().toLocaleString();
+
+  // Tier scores
+  const t1 = q_data.filter(q=>q.tier===1);
+  const t2 = q_data.filter(q=>q.tier===2);
+  function tierScore(qs) {
+    const ans = qs.filter(q=>answers[q.id] && answers[q.id].score!==null);
+    if(!ans.length) return '—';
+    const sum = ans.reduce((a,q)=>a+(answers[q.id].score||0),0);
+    return Math.round((sum/ans.length)*100)+'%';
+  }
+
+  let rows = '';
+  q_data.forEach(q => {
+    const ans = answers[q.id];
+    if (!ans) return;
+    const tierColors = {1:'#DBEAFE',2:'#EDE9FE',3:'#FFEDD5'};
+    const tierTextColors = {1:'#1d4ed8',2:'#7c3aed',3:'#c2410c'};
+    let answerHTML = '';
+
+    if (q.type === 'vocab-mc' || q.type === 'verb-agree' || q.type === 'native-match' || q.type === 'prep-sentence') {
+      const letters = ['A','B','C','D'];
+      const opts = q.options || [];
+      opts.forEach((opt, i) => {
+        const isCorrect = i === q.correct;
+        const wasChosen = ans.value === i;
+        let style = 'padding:5px 10px;border-radius:6px;margin:3px 0;font-size:.85rem;border:1.5px solid #e5e7eb;';
+        if (isCorrect) style += 'background:#EAF3DE;border-color:#86EFAC;color:#3B6D11;font-weight:700;';
+        else if (wasChosen && !isCorrect) style += 'background:#FCEBEB;border-color:#F0997B;color:#A32D2D;font-weight:700;';
+        const mark = isCorrect ? ' ✓' : (wasChosen && !isCorrect ? ' ✗' : '');
+        answerHTML += `<div style="${style}">${letters[i]}. ${opt}${mark}</div>`;
+      });
+    } else if (q.type === 'picture-match') {
+      answerHTML = `<div style="font-size:.85rem;color:#5F5E5A;">Selected image ${ans.value+1} — ${ans.correct ? '<span style="color:#3B6D11;font-weight:700;">✓ Correct</span>' : '<span style="color:#A32D2D;font-weight:700;">✗ Incorrect</span>'}</div>`;
+    } else {
+      // written
+      answerHTML = `<div style="background:#f9f9f7;border-radius:6px;padding:8px;font-size:.88rem;color:#2C2C2A;margin-bottom:4px;">${(ans.value||'').replace(/</g,'&lt;')}</div>`;
+      if (ans.score !== null && ans.score !== undefined) {
+        answerHTML += `<div style="font-size:.8rem;color:#085041;font-weight:700;">Rubric avg: ${ans.score}/4</div>`;
+      }
+      if (ans.recordingUrl) {
+        answerHTML += `<div style="margin-top:4px;"><a href="${ans.recordingUrl}" target="_blank" style="font-size:.8rem;background:#E1F5EE;border:1px solid #9FE1CB;border-radius:6px;padding:2px 8px;color:#085041;text-decoration:none;font-weight:700;">🎙 Listen to recording</a></div>`;
+      }
+    }
+
+    // Scene/photo for prep-sentence
+    let sceneHTML = '';
+    if (q.type === 'prep-sentence' && q.photo) {
+      sceneHTML = `<img src="${q.photo}" style="width:100%;max-width:280px;height:140px;object-fit:cover;border-radius:8px;display:block;margin-bottom:8px;">`;
+    }
+
+    rows += `<div style="background:white;border-radius:10px;padding:14px;margin-bottom:10px;box-shadow:0 1px 6px rgba(0,0,0,.07);border-left:4px solid ${tierColors[q.tier]};">
+      <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+        <span style="background:${tierColors[q.tier]};color:${tierTextColors[q.tier]};font-size:10px;font-weight:800;padding:2px 8px;border-radius:12px;">Tier ${q.tier}</span>
+        <span style="background:#E1F5EE;color:#085041;font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px;">${q.unit}</span>
+        <span style="font-size:10px;color:#5F5E5A;font-weight:700;padding:2px 8px;">Q${q.id}</span>
+      </div>
+      <div style="font-size:.9rem;font-weight:700;color:#2C2C2A;margin-bottom:10px;">${(q.question||q.prompt||q.sentence||'').replace(/</g,'&lt;')}</div>
+      ${sceneHTML}
+      ${answerHTML}
+    </div>`;
+  });
+
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ELD Report — ${name}</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+</head><body style="font-family:'Nunito',sans-serif;background:#f7f8fa;margin:0;padding:0;">
+<div style="background:linear-gradient(135deg,#085041,#1D9E75);padding:1.5rem;color:white;text-align:center;">
+  <h1 style="margin:0;font-size:1.4rem;">🌟 ELD Assessment Report</h1>
+  <p style="margin:.25rem 0 0;opacity:.85;">${name} · Period ${period} · ${timestamp}</p>
+</div>
+<div style="max-width:600px;margin:1.5rem auto;padding:0 1rem;">
+  <div style="background:white;border-radius:12px;padding:1.25rem;box-shadow:0 2px 12px rgba(0,0,0,.08);margin-bottom:1.5rem;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center;">
+    <div style="background:#E1F5EE;border-radius:8px;padding:.75rem;">
+      <div style="font-size:10px;font-weight:800;color:#1D9E75;text-transform:uppercase;margin-bottom:4px;">Tier 1</div>
+      <div style="font-size:1.6rem;font-weight:800;color:#085041;">${tierScore(t1)}</div>
+    </div>
+    <div style="background:#EDE9FE;border-radius:8px;padding:.75rem;">
+      <div style="font-size:10px;font-weight:800;color:#7c3aed;text-transform:uppercase;margin-bottom:4px;">Tier 2</div>
+      <div style="font-size:1.6rem;font-weight:800;color:#4c1d95;">${tierScore(t2)}</div>
+    </div>
+    <div style="background:#FFEDD5;border-radius:8px;padding:.75rem;">
+      <div style="font-size:10px;font-weight:800;color:#c2410c;text-transform:uppercase;margin-bottom:4px;">Answered</div>
+      <div style="font-size:1.6rem;font-weight:800;color:#7c2d12;">${Object.keys(answers).length}/${q_data.length}</div>
+    </div>
+  </div>
+  ${rows}
+</div></body></html>`;
+  return html;
+}
+
+async function uploadStudentReport(htmlContent) {
+  const name = (state.studentName || 'student').replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_]/g,'');
+  const period = state.studentPeriod || '0';
+  const filename = `${name}_P${period}_${Date.now()}.html`;
+  try {
+    const res = await fetch(
+      `${SUPA_URL}/storage/v1/object/assessment-recordings/reports/${filename}`,
+      {
+        method: 'POST',
+        headers: {
+          'apikey': SUPA_KEY,
+          'Authorization': `Bearer ${SUPA_KEY}`,
+          'Content-Type': 'text/html',
+          'x-upsert': 'true'
+        },
+        body: htmlContent
+      }
+    );
+    if (res.ok) {
+      const url = `${SUPA_URL}/storage/v1/object/public/assessment-recordings/reports/${filename}`;
+      console.log('Report uploaded:', url);
+      return url;
+    }
+    console.warn('Report upload failed:', await res.text());
+    return null;
+  } catch(e) {
+    console.warn('Report upload error:', e);
+    return null;
+  }
+}
+
+async function submitToDashboard(reportUrl){
   const payload = {
     action: 'submitAssessment',
     studentName: state.studentName,
@@ -1148,6 +1302,7 @@ async function submitToDashboard(){
     lang: state.lang,
     mode: MODE,
     infractions: infractions,
+    reportUrl: reportUrl || null,
     timestamp: new Date().toISOString(),
     answers: state.answers
   };
@@ -1248,10 +1403,31 @@ updateProgress();
         <p id="db-err" style="color:#A32D2D;font-size:.85rem;margin-top:.5rem;display:none;">Incorrect password</p>
       </div>
       <div id="db-content" style="display:none;">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:2rem;" id="db-stats"></div>
-        <div style="background:white;border-radius:12px;padding:1.5rem;box-shadow:0 2px 16px rgba(0,0,0,.08);">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:1.5rem;" id="db-stats"></div>
+
+        <!-- Tab nav -->
+        <div style="display:flex;gap:8px;margin-bottom:1rem;">
+          <button id="tab-list" onclick="switchTab('list')" style="padding:7px 18px;border-radius:8px;border:none;font-family:'Nunito',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;background:#1D9E75;color:white;">Student List</button>
+          <button id="tab-grid" onclick="switchTab('grid')" style="padding:7px 18px;border-radius:8px;border:2px solid #D3D1C7;font-family:'Nunito',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;background:white;color:#5F5E5A;">Answer Grid</button>
+        </div>
+
+        <div id="db-tab-list" style="background:white;border-radius:12px;padding:1.5rem;box-shadow:0 2px 16px rgba(0,0,0,.08);">
           <h3 style="font-size:1rem;font-weight:700;color:#085041;margin-bottom:1rem;">Student Responses</h3>
           <div id="db-table-wrap" style="overflow-x:auto;"></div>
+        </div>
+
+        <div id="db-tab-grid" style="display:none;background:white;border-radius:12px;padding:1.5rem;box-shadow:0 2px 16px rgba(0,0,0,.08);">
+          <div style="display:flex;gap:10px;align-items:center;margin-bottom:1rem;flex-wrap:wrap;">
+            <h3 style="font-size:1rem;font-weight:700;color:#085041;margin:0;">Answer Grid</h3>
+            <select id="grid-period-filter" onchange="renderGrid(currentSubs)" style="border:1.5px solid #D3D1C7;border-radius:6px;padding:4px 10px;font-family:'Nunito',sans-serif;font-size:.85rem;">
+              <option value="">All Periods</option>
+              <option value="1">Period 1</option><option value="2">Period 2</option>
+              <option value="3">Period 3</option><option value="4">Period 4</option>
+              <option value="5">Period 5</option><option value="6">Period 6</option>
+              <option value="7">Period 7</option>
+            </select>
+          </div>
+          <div id="db-grid-wrap" style="overflow-x:auto;"></div>
         </div>
       </div>
     </div>`;
@@ -1295,6 +1471,9 @@ updateProgress();
         <td style="padding:8px 10px;border-bottom:1px solid #F1EFE8;">
           ${s.feedback?`<span style="font-size:11px;color:#3B6D11;">✓ </span>`:''}
           <button onclick="addFB('${s.submissionId}','${(s.studentName||'').replace(/'/g,"\\'")}');loadDB()" style="font-size:12px;background:#E1F5EE;border:1px solid #9FE1CB;border-radius:6px;padding:3px 10px;cursor:pointer;font-family:'Nunito',sans-serif;font-weight:700;color:#085041;">Add Feedback</button>
+        </td>
+        <td style="padding:8px 10px;border-bottom:1px solid #F1EFE8;">
+          ${s.reportUrl ? `<a href="${s.reportUrl}" target="_blank" style="font-size:12px;background:#085041;color:white;border-radius:6px;padding:3px 10px;text-decoration:none;font-weight:700;display:inline-block;">📄 Report</a>` : '<span style="color:#aaa;font-size:11px;">—</span>'}
         </td></tr>`).join('');
       document.getElementById('db-table-wrap').innerHTML=`
         <table style="width:100%;border-collapse:collapse;font-size:.9rem;font-family:'Nunito',sans-serif;">
@@ -1308,9 +1487,105 @@ updateProgress();
             <th style="padding:8px 10px;text-align:left;font-weight:700;color:#085041;">Date</th>
             <th style="padding:8px 10px;text-align:left;font-weight:700;color:#085041;">🎙 Recordings</th>
             <th style="padding:8px 10px;text-align:left;font-weight:700;color:#085041;">Feedback</th>
+            <th style="padding:8px 10px;text-align:left;font-weight:700;color:#085041;">Report</th>
           </tr></thead>
-          <tbody>${rows||'<tr><td colspan="9" style="padding:1rem;color:#5F5E5A;text-align:center;">No submissions yet.</td></tr>'}</tbody>
+          <tbody>${rows||'<tr><td colspan="10" style="padding:1rem;color:#5F5E5A;text-align:center;">No submissions yet.</td></tr>'}</tbody>
         </table>`;
+
+      // Store for grid
+      currentSubs = subs;
+      renderGrid(subs);
+    }
+
+    let currentSubs = [];
+
+    function switchTab(tab) {
+      document.getElementById('db-tab-list').style.display = tab==='list' ? '' : 'none';
+      document.getElementById('db-tab-grid').style.display = tab==='grid' ? '' : 'none';
+      document.getElementById('tab-list').style.background = tab==='list' ? '#1D9E75' : 'white';
+      document.getElementById('tab-list').style.color = tab==='list' ? 'white' : '#5F5E5A';
+      document.getElementById('tab-list').style.border = tab==='list' ? 'none' : '2px solid #D3D1C7';
+      document.getElementById('tab-grid').style.background = tab==='grid' ? '#1D9E75' : 'white';
+      document.getElementById('tab-grid').style.color = tab==='grid' ? 'white' : '#5F5E5A';
+      document.getElementById('tab-grid').style.border = tab==='grid' ? 'none' : '2px solid #D3D1C7';
+    }
+    window.switchTab = switchTab;
+
+    function renderGrid(subs) {
+      const periodFilter = document.getElementById('grid-period-filter').value;
+      const filtered = periodFilter ? subs.filter(s=>String(s.period)===periodFilter) : subs;
+
+      // Q metadata (tier 1+2 only for grid — MC questions with right/wrong)
+      const MC_QS = [
+        {id:1,label:'Q1 U1 vocab'},{id:2,label:'Q2 U1 vocab'},{id:3,label:'Q3 U1 pic'},
+        {id:4,label:'Q4 U1 gram'},{id:5,label:'Q5 U1 prep'},
+        {id:7,label:'Q7 U2 vocab'},{id:8,label:'Q8 U2 match'},{id:9,label:'Q9 U2 vocab'},
+        {id:10,label:'Q10 U2 gram'},{id:11,label:'Q11 U2 gram'},
+        {id:13,label:'Q13 U3 vocab'},{id:14,label:'Q14 U3 pic'},{id:15,label:'Q15 U3 match'},
+        {id:16,label:'Q16 U3 prep'},
+        {id:18,label:'Q18 U4 vocab'},{id:19,label:'Q19 U4 pic'},
+        {id:20,label:'Q20 U4 gram'},{id:21,label:'Q21 U4 prep'},
+        {id:23,label:'Q23 U5 vocab'},{id:24,label:'Q24 U5 match'},{id:25,label:'Q25 U5 gram'},
+        {id:27,label:'Q27 U6 vocab'},{id:28,label:'Q28 U6 match'},{id:29,label:'Q29 U6 gram'},
+      ];
+
+      if (!filtered.length) {
+        document.getElementById('db-grid-wrap').innerHTML = '<p style="color:#5F5E5A;padding:1rem;">No submissions yet.</p>';
+        return;
+      }
+
+      let html = '<table style="border-collapse:collapse;font-size:.75rem;font-family:Nunito,sans-serif;min-width:100%;">';
+      // Header row
+      html += '<thead><tr style="background:#F1EFE8;">';
+      html += '<th style="padding:6px 10px;text-align:left;font-weight:700;color:#085041;white-space:nowrap;position:sticky;left:0;background:#F1EFE8;">Student</th>';
+      html += '<th style="padding:6px 8px;text-align:center;font-weight:700;color:#085041;">Per.</th>';
+      MC_QS.forEach(q => {
+        html += `<th style="padding:4px 6px;text-align:center;font-weight:700;color:#085041;white-space:nowrap;min-width:36px;" title="${q.label}">${q.id}</th>`;
+      });
+      html += '<th style="padding:6px 8px;text-align:center;font-weight:700;color:#085041;">T1%</th>';
+      html += '<th style="padding:6px 8px;text-align:center;font-weight:700;color:#085041;">T2%</th>';
+      html += '</tr></thead><tbody>';
+
+      // One row per student
+      filtered.forEach((s, i) => {
+        const bg = i%2===0 ? 'white' : '#fafafa';
+        html += `<tr style="background:${bg};">`;
+        html += `<td style="padding:5px 10px;font-weight:700;white-space:nowrap;position:sticky;left:0;background:${bg};">${s.studentName||'—'}</td>`;
+        html += `<td style="padding:5px 8px;text-align:center;">${s.period||'—'}</td>`;
+
+        const ansMap = {};
+        (s.answers||[]).forEach(a => { ansMap[a.questionId] = a; });
+
+        let t1right=0,t1total=0,t2right=0,t2total=0;
+        MC_QS.forEach(q => {
+          const tier = q.id <= 5 ? 1 : q.id <= 11 ? (q.id<=5?1:2) : 1; // rough
+          // Actually determine tier from label
+          const isT2 = q.label.includes('gram') || q.label.includes('prep');
+          const a = ansMap[String(q.id)];
+          if (!a) {
+            html += '<td style="padding:4px 6px;text-align:center;color:#ccc;">—</td>';
+          } else {
+            const correct = a.correct === 'YES' || a.correct === true;
+            const cell_bg = correct ? '#EAF3DE' : '#FCEBEB';
+            const cell_color = correct ? '#3B6D11' : '#A32D2D';
+            html += `<td style="padding:4px 6px;text-align:center;background:${cell_bg};color:${cell_color};font-weight:800;">${correct ? '✓' : '✗'}</td>`;
+            if (isT2) { t2total++; if(correct) t2right++; }
+            else { t1total++; if(correct) t1right++; }
+          }
+        });
+
+        const t1pct = t1total ? Math.round(t1right/t1total*100)+'%' : '—';
+        const t2pct = t2total ? Math.round(t2right/t2total*100)+'%' : '—';
+        html += `<td style="padding:5px 8px;text-align:center;font-weight:800;color:#085041;">${t1pct}</td>`;
+        html += `<td style="padding:5px 8px;text-align:center;font-weight:800;color:#7c3aed;">${t2pct}</td>`;
+        html += '</tr>';
+      });
+
+      html += '</tbody></table>';
+      document.getElementById('db-grid-wrap').innerHTML = html;
+    }
+    window.renderGrid = renderGrid;
+
       window.addFB = function(id, name){
         const fb=prompt('Feedback for ' + name + ':');
         if(fb) fetch(APPS_SCRIPT_URL,
