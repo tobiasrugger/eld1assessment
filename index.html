@@ -765,9 +765,7 @@ function renderPictureMatch(q){
     const content = img.photo
       ? `<img src="${img.photo}" style="width:100%;height:110px;object-fit:cover;border-radius:8px;display:block;">`
       : (SCENES[img.scene]||'');
-    html += `<button class="img-opt" id="imgopt-${i}" onclick="selectPicture(${q.id},${i})" data-correct="${img.correct}">
-      ${content}
-    </button>`;
+    html += `<button class="img-opt" id="imgopt-${i}" onclick="selectPicture(${q.id},${i})" data-correct="${img.correct}">${content}</button>`;
   });
   return html + '</div>';
 }
@@ -1167,8 +1165,11 @@ function dismissLockdown() {
 document.addEventListener('visibilitychange', function() {
   if (document.hidden) triggerLockdownWarning();
 });
+// Only watch blur after user has interacted (avoids false positives on load)
+let pageHadFocus = false;
+window.addEventListener('focus', function() { pageHadFocus = true; });
 window.addEventListener('blur', function() {
-  triggerLockdownWarning();
+  if (pageHadFocus) triggerLockdownWarning();
 });
 document.addEventListener('fullscreenchange', function() {
   if (!document.fullscreenElement && lockdownActive &&
