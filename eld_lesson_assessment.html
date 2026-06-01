@@ -34,7 +34,7 @@ main{max-width:580px;margin:1.5rem auto;padding:0 1rem;}
 .question-num{font-size:12px;color:var(--gray-500);margin-bottom:.4rem;font-weight:700;}
 .question-text{font-size:1rem;font-weight:700;line-height:1.5;margin-bottom:1.25rem;}
 .native-hint{font-size:.85rem;color:var(--purple);background:var(--purple-light);padding:6px 12px;border-radius:var(--radius-sm);margin-bottom:1rem;font-weight:600;display:flex;align-items:center;gap:6px;}
-.vocab-image{width:100%;max-width:220px;height:150px;object-fit:cover;border-radius:var(--radius);margin:0 auto 1rem;display:block;box-shadow:var(--shadow);}
+.vocab-image{width:100%;max-width:220px;height:160px;object-fit:contain;border-radius:var(--radius);margin:0 auto 1rem;display:block;box-shadow:var(--shadow);background:#f5f5f5;}
 .options{display:flex;flex-direction:column;gap:10px;}
 .opt{border:2px solid var(--gray-200);border-radius:var(--radius-sm);padding:.75rem 1rem;cursor:pointer;font-family:var(--font);font-size:.95rem;font-weight:600;text-align:left;background:white;color:var(--gray-900);transition:all .15s;display:flex;align-items:center;gap:10px;width:100%;}
 .opt:hover:not(:disabled){border-color:var(--teal);background:var(--teal-light);}
@@ -42,11 +42,11 @@ main{max-width:580px;margin:1.5rem auto;padding:0 1rem;}
 .opt.incorrect{border-color:var(--red);background:var(--red-light);color:var(--red);}
 .opt-letter{width:24px;height:24px;border-radius:50%;background:var(--gray-100);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;}
 .img-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.img-opt{border:2px solid var(--gray-200);border-radius:var(--radius);cursor:pointer;background:white;overflow:hidden;transition:all .15s;}
+.img-opt{border:2px solid var(--gray-200);border-radius:var(--radius);cursor:pointer;background:white;overflow:hidden;transition:all .15s;padding:0;display:block;width:100%;text-align:left;}
 .img-opt:hover:not(:disabled){border-color:var(--teal);}
 .img-opt.correct{border-color:var(--green);box-shadow:0 0 0 2px var(--green);}
 .img-opt.incorrect{border-color:var(--red);}
-.img-opt img{width:100%;height:100px;object-fit:cover;display:block;}
+.img-opt img{width:100%;display:block;}
 .img-opt-label{font-size:.75rem;font-weight:700;text-align:center;padding:4px;color:var(--gray-500);}
 .feedback-box{border-radius:var(--radius);padding:1rem 1.25rem;margin-top:1rem;animation:fadeIn .4s ease;}
 .fb-correct{background:var(--green-light);border:1px solid #C0DD97;}
@@ -370,15 +370,16 @@ function selectImg(qid, chosenId, correctId) {
   document.querySelectorAll('.img-opt').forEach(o => { o.disabled = true; });
   const isCorrect = chosenId === correctId;
   document.querySelectorAll('.img-opt').forEach(o => {
-    const oc = o.getAttribute('onclick') || '';
-    if (oc.includes("'" + chosenId + "'")) o.classList.add(isCorrect ? 'correct' : 'incorrect');
-    if (!isCorrect && oc.includes("'" + correctId + "'")) o.classList.add('correct');
+    if (o.dataset.chosen === chosenId) o.classList.add(isCorrect ? 'correct' : 'incorrect');
+    if (!isCorrect && o.dataset.chosen === correctId) o.classList.add('correct');
   });
   state.answers[qid] = {value:chosenId, correct:isCorrect, score:isCorrect?1:0};
   document.getElementById('btn-next').disabled = false;
+  const q = QUESTIONS.find(q => q.id === qid);
   if (IS_FORMATIVE) {
-    const q = QUESTIONS.find(q => q.id === qid);
     getAIFeedback(isCorrect, 'Image match for word "' + (q ? q.word.word : '') + '"', qid);
+  } else {
+    showSimpleFeedback(isCorrect);
   }
   updateProgress();
 }
@@ -387,22 +388,26 @@ function selectMC(qid, chosenId, correctId) {
   document.querySelectorAll('.opt').forEach(o => { o.disabled = true; });
   const isCorrect = chosenId === correctId;
   document.querySelectorAll('.opt').forEach(o => {
-    const oc = o.getAttribute('onclick') || '';
-    if (oc.includes("'" + chosenId + "'")) o.classList.add(isCorrect ? 'correct' : 'incorrect');
-    if (!isCorrect && oc.includes("'" + correctId + "'")) o.classList.add('correct');
+    if (o.dataset.chosen === chosenId) o.classList.add(isCorrect ? 'correct' : 'incorrect');
+    if (!isCorrect && o.dataset.chosen === correctId) o.classList.add('correct');
   });
   state.answers[qid] = {value:chosenId, correct:isCorrect, score:isCorrect?1:0};
   document.getElementById('btn-next').disabled = false;
+  const q = QUESTIONS.find(q => q.id === qid);
   if (IS_FORMATIVE) {
-    const q = QUESTIONS.find(q => q.id === qid);
     getAIFeedback(isCorrect, 'Word: "' + (q ? q.word.word : '') + '"', qid);
+  } else {
+    showSimpleFeedback(isCorrect);
   }
   updateProgress();
 }
 
-function handleWBClick(btn) {
-  insertWord(btn.dataset.word, parseInt(btn.dataset.idx));
-  btn.style.opacity = '0.4';
+function showSimpleFeedback(isCorrect) {
+  document.getElementById('feedback-area').innerHTML =
+    '<div class="feedback-box ' + (isCorrect ? 'fb-correct' : 'fb-incorrect') + '">'
+    + '<div class="fb-header" style="color:' + (isCorrect ? 'var(--green)' : 'var(--coral)') + ';">'
+    + (isCorrect ? '✓ Correct!' : '✗ Not quite — see the correct answer above.') + '</div>'
+    + '</div>';
 }
 
 function insertWord(word, idx) {
