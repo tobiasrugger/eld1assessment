@@ -1388,7 +1388,7 @@ updateProgress();
 <script>
 (function(){
   if(new URLSearchParams(window.location.search).get('dashboard')!=='1') return;
-  document.addEventListener('DOMContentLoaded',()=>{
+  function initDashboard(){
     document.body.innerHTML=`
     <div style="font-family:'Nunito',sans-serif;max-width:900px;margin:0 auto;padding:2rem 1rem;">
       <div style="display:flex;align-items:center;gap:1rem;margin-bottom:2rem;">
@@ -1593,7 +1593,12 @@ updateProgress();
           .then(()=>alert('Saved!'));
       };
     }
-  });
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', initDashboard);
+  } else {
+    initDashboard();
+  }
 })();
 </script>
 </body>
