@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ELD Assessment — Teacher Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+body { margin:0; background:#f0f4f8; font-family:'Nunito',sans-serif; }
+</style>
+</head>
+<body>
+
+    <div style="font-family:'Nunito',sans-serif;max-width:900px;margin:0 auto;padding:2rem 1rem;">
+      <div style="display:flex;align-items:center;gap:1rem;margin-bottom:2rem;">
+        <div style="background:#1D9E75;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:1.2rem;">🏫</div>
+        <div><h1 style="font-size:1.4rem;font-weight:800;color:#085041;margin:0;">ELD Assessment Dashboard</h1>
+        <p style="font-size:.85rem;color:#5F5E5A;margin:0;">Summative · Galileo</p></div>
+      </div>
+      <div id="db-login" style="background:white;border-radius:12px;padding:2rem;box-shadow:0 2px 16px rgba(0,0,0,.08);max-width:400px;margin:0 auto;">
+        <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:1rem;">Teacher Login</h2>
+        <input type="password" id="db-pw" placeholder="Password" style="width:100%;border:2px solid #D3D1C7;border-radius:8px;padding:.75rem;font-family:'Nunito',sans-serif;font-size:1rem;margin-bottom:.75rem;" onkeydown="if(event.key==='Enter')dbLogin()">
+        <button onclick="dbLogin()" style="width:100%;background:#1D9E75;color:white;border:none;border-radius:8px;padding:.8rem;font-family:'Nunito',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;">Enter</button>
+        <p id="db-err" style="color:#A32D2D;font-size:.85rem;margin-top:.5rem;display:none;">Incorrect password</p>
+      </div>
+      <div id="db-content" style="display:none;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:1.5rem;" id="db-stats"></div>
+
+        <!-- Tab nav -->
+        <div style="display:flex;gap:8px;margin-bottom:1rem;">
+          <button id="tab-list" onclick="switchTab('list')" style="padding:7px 18px;border-radius:8px;border:none;font-family:'Nunito',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;background:#1D9E75;color:white;">Student List</button>
+          <button id="tab-grid" onclick="switchTab('grid')" style="padding:7px 18px;border-radius:8px;border:2px solid #D3D1C7;font-family:'Nunito',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;background:white;color:#5F5E5A;">Answer Grid</button>
+        </div>
+
+        <div id="db-tab-list" style="background:white;border-radius:12px;padding:1.5rem;box-shadow:0 2px 16px rgba(0,0,0,.08);">
+          <h3 style="font-size:1rem;font-weight:700;color:#085041;margin-bottom:1rem;">Student Responses</h3>
+          <div id="db-table-wrap" style="overflow-x:auto;"></div>
+        </div>
+
+        <div id="db-tab-grid" style="display:none;background:white;border-radius:12px;padding:1.5rem;box-shadow:0 2px 16px rgba(0,0,0,.08);">
+          <div style="display:flex;gap:10px;align-items:center;margin-bottom:1rem;flex-wrap:wrap;">
+            <h3 style="font-size:1rem;font-weight:700;color:#085041;margin:0;">Answer Grid</h3>
+            <select id="grid-period-filter" onchange="renderGrid(currentSubs)" style="border:1.5px solid #D3D1C7;border-radius:6px;padding:4px 10px;font-family:'Nunito',sans-serif;font-size:.85rem;">
+              <option value="">All Periods</option>
+              <option value="1">Period 1</option><option value="2">Period 2</option>
+              <option value="3">Period 3</option><option value="4">Period 4</option>
+              <option value="5">Period 5</option><option value="6">Period 6</option>
+              <option value="7">Period 7</option>
+            </select>
+          </div>
+          <div id="db-grid-wrap" style="overflow-x:auto;"></div>
+        </div>
+      </div>
+    </div>
+<script>
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwbFr3oopIITlxKDhI5wGhEZdomWc3tmB5ZSK6NpBVisPAz-CMA4uKiruXDkCEU3T0Q/exec';
+
+window.dbLogin = function(){
+      if(document.getElementById('db-pw').value==='galileo2026'){
+        document.getElementById('db-login').style.display='none';
+        document.getElementById('db-content').style.display='block';
+        loadDB();
+      } else { document.getElementById('db-err').style.display='block'; }
+    };
+    async function loadDB(){
+      try {
+        const res = await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          redirect: 'follow',
+          body: JSON.stringify({ action: 'getELDSubmissions', password: 'galileo2026' })
+        });
+        const data = await res.json();
+        renderDB(data.ok ? (data.submissions || []) : []);
+      } catch(e){ document.getElementById('db-table-wrap').innerHTML='<p style="color:#A32D2D;">Could not load data. Check Apps Script.</p>'; }
+    }
+    function renderDB(subs){
+      document.getElementById('db-stats').innerHTML=`
+        <div style="background:#E1F5EE;border-radius:8px;padding:1rem;text-align:center;">
+          <div style="font-size:11px;font-weight:800;color:#1D9E75;text-transform:uppercase;margin-bottom:4px;">Submissions</div>
+          <div style="font-size:1.8rem;font-weight:800;color:#085041;">${subs.length}</div>
+        </div>`;
+      const rows = subs.map(s=>`<tr>
+        <td style="padding:8px 10px;border-bottom:1px solid #F1EFE8;">${s.studentName||'—'}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #F1EFE8;">${s.period||'—'}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #F1EFE8;">${s.lang||'en'}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #F1EFE8;">${s.t1Correct||0}/${s.t1Total||0}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #F1EFE8;">${s.t2Correct||0}/${s.t2Total||0}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #F1EFE8;">${s.writtenCount||0} written</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #F1EFE8;">${s.timestamp ? new Date(s.timestamp).toLocaleDateString() : '—'}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #F1EFE8;">
+          ${(s.answers||[]).filter(a=>a.recordingUrl).map(a=>
+            `<a href="${a.recordingUrl}" target="_blank" style="display:inline-block;margin:2px;font-size:11px;background:#E1F5EE;border:1px solid #9FE1CB;border-radius:6px;padding:2px 8px;color:#085041;text-decoration:none;font-weight:700;">🎙 Q${a.questionId}</a>`
+          ).join('') || '<span style="color:#aaa;font-size:11px;">none</span>'}
+        </td>
+        <td style="padding:8px 10px;border-bottom:1px solid #F1EFE8;">
+          ${s.feedback?`<span style="font-size:11px;color:#3B6D11;">✓ </span>`:''}
+          <button onclick="addFB('${s.submissionId}','${(s.studentName||'').replace(/'/g,"\\'")}');loadDB()" style="font-size:12px;background:#E1F5EE;border:1px solid #9FE1CB;border-radius:6px;padding:3px 10px;cursor:pointer;font-family:'Nunito',sans-serif;font-weight:700;color:#085041;">Add Feedback</button>
+        </td>
+        <td style="padding:8px 10px;border-bottom:1px solid #F1EFE8;">
+          ${s.reportUrl ? `<a href="${s.reportUrl}" target="_blank" style="font-size:12px;background:#085041;color:white;border-radius:6px;padding:3px 10px;text-decoration:none;font-weight:700;display:inline-block;">📄 Report</a>` : '<span style="color:#aaa;font-size:11px;">—</span>'}
+        </td></tr>`).join('');
+      document.getElementById('db-table-wrap').innerHTML=`
+        <table style="width:100%;border-collapse:collapse;font-size:.9rem;font-family:'Nunito',sans-serif;">
+          <thead><tr style="background:#F1EFE8;">
+            <th style="padding:8px 10px;text-align:left;font-weight:700;color:#085041;">Student</th>
+            <th style="padding:8px 10px;text-align:left;font-weight:700;color:#085041;">Period</th>
+            <th style="padding:8px 10px;text-align:left;font-weight:700;color:#085041;">Lang</th>
+            <th style="padding:8px 10px;text-align:left;font-weight:700;color:#085041;">Tier 1</th>
+            <th style="padding:8px 10px;text-align:left;font-weight:700;color:#085041;">Tier 2</th>
+            <th style="padding:8px 10px;text-align:left;font-weight:700;color:#085041;">Writing</th>
+            <th style="padding:8px 10px;text-align:left;font-weight:700;color:#085041;">Date</th>
+            <th style="padding:8px 10px;text-align:left;font-weight:700;color:#085041;">🎙 Recordings</th>
+            <th style="padding:8px 10px;text-align:left;font-weight:700;color:#085041;">Feedback</th>
+            <th style="padding:8px 10px;text-align:left;font-weight:700;color:#085041;">Report</th>
+          </tr></thead>
+          <tbody>${rows||'<tr><td colspan="10" style="padding:1rem;color:#5F5E5A;text-align:center;">No submissions yet.</td></tr>'}</tbody>
+        </table>`;
+
+      // Store for grid
+      currentSubs = subs;
+      renderGrid(subs);
+    }
+
+    let currentSubs = [];
+
+    function switchTab(tab) {
+      document.getElementById('db-tab-list').style.display = tab==='list' ? '' : 'none';
+      document.getElementById('db-tab-grid').style.display = tab==='grid' ? '' : 'none';
+      document.getElementById('tab-list').style.background = tab==='list' ? '#1D9E75' : 'white';
+      document.getElementById('tab-list').style.color = tab==='list' ? 'white' : '#5F5E5A';
+      document.getElementById('tab-list').style.border = tab==='list' ? 'none' : '2px solid #D3D1C7';
+      document.getElementById('tab-grid').style.background = tab==='grid' ? '#1D9E75' : 'white';
+      document.getElementById('tab-grid').style.color = tab==='grid' ? 'white' : '#5F5E5A';
+      document.getElementById('tab-grid').style.border = tab==='grid' ? 'none' : '2px solid #D3D1C7';
+    }
+    window.switchTab = switchTab;
+
+    function renderGrid(subs) {
+      const periodFilter = document.getElementById('grid-period-filter').value;
+      const filtered = periodFilter ? subs.filter(s=>String(s.period)===periodFilter) : subs;
+
+      // Q metadata (tier 1+2 only for grid — MC questions with right/wrong)
+      const MC_QS = [
+        {id:1,label:'Q1 U1 vocab'},{id:2,label:'Q2 U1 vocab'},{id:3,label:'Q3 U1 pic'},
+        {id:4,label:'Q4 U1 gram'},{id:5,label:'Q5 U1 prep'},
+        {id:7,label:'Q7 U2 vocab'},{id:8,label:'Q8 U2 match'},{id:9,label:'Q9 U2 vocab'},
+        {id:10,label:'Q10 U2 gram'},{id:11,label:'Q11 U2 gram'},
+        {id:13,label:'Q13 U3 vocab'},{id:14,label:'Q14 U3 pic'},{id:15,label:'Q15 U3 match'},
+        {id:16,label:'Q16 U3 prep'},
+        {id:18,label:'Q18 U4 vocab'},{id:19,label:'Q19 U4 pic'},
+        {id:20,label:'Q20 U4 gram'},{id:21,label:'Q21 U4 prep'},
+        {id:23,label:'Q23 U5 vocab'},{id:24,label:'Q24 U5 match'},{id:25,label:'Q25 U5 gram'},
+        {id:27,label:'Q27 U6 vocab'},{id:28,label:'Q28 U6 match'},{id:29,label:'Q29 U6 gram'},
+      ];
+
+      if (!filtered.length) {
+        document.getElementById('db-grid-wrap').innerHTML = '<p style="color:#5F5E5A;padding:1rem;">No submissions yet.</p>';
+        return;
+      }
+
+      let html = '<table style="border-collapse:collapse;font-size:.75rem;font-family:Nunito,sans-serif;min-width:100%;">';
+      // Header row
+      html += '<thead><tr style="background:#F1EFE8;">';
+      html += '<th style="padding:6px 10px;text-align:left;font-weight:700;color:#085041;white-space:nowrap;position:sticky;left:0;background:#F1EFE8;">Student</th>';
+      html += '<th style="padding:6px 8px;text-align:center;font-weight:700;color:#085041;">Per.</th>';
+      MC_QS.forEach(q => {
+        html += `<th style="padding:4px 6px;text-align:center;font-weight:700;color:#085041;white-space:nowrap;min-width:36px;" title="${q.label}">${q.id}</th>`;
+      });
+      html += '<th style="padding:6px 8px;text-align:center;font-weight:700;color:#085041;">T1%</th>';
+      html += '<th style="padding:6px 8px;text-align:center;font-weight:700;color:#085041;">T2%</th>';
+      html += '</tr></thead><tbody>';
+
+      // One row per student
+      filtered.forEach((s, i) => {
+        const bg = i%2===0 ? 'white' : '#fafafa';
+        html += `<tr style="background:${bg};">`;
+        html += `<td style="padding:5px 10px;font-weight:700;white-space:nowrap;position:sticky;left:0;background:${bg};">${s.studentName||'—'}</td>`;
+        html += `<td style="padding:5px 8px;text-align:center;">${s.period||'—'}</td>`;
+
+        const ansMap = {};
+        (s.answers||[]).forEach(a => { ansMap[a.questionId] = a; });
+
+        let t1right=0,t1total=0,t2right=0,t2total=0;
+        MC_QS.forEach(q => {
+          const tier = q.id <= 5 ? 1 : q.id <= 11 ? (q.id<=5?1:2) : 1; // rough
+          // Actually determine tier from label
+          const isT2 = q.label.includes('gram') || q.label.includes('prep');
+          const a = ansMap[String(q.id)];
+          if (!a) {
+            html += '<td style="padding:4px 6px;text-align:center;color:#ccc;">—</td>';
+          } else {
+            const correct = a.correct === 'YES' || a.correct === true;
+            const cell_bg = correct ? '#EAF3DE' : '#FCEBEB';
+            const cell_color = correct ? '#3B6D11' : '#A32D2D';
+            html += `<td style="padding:4px 6px;text-align:center;background:${cell_bg};color:${cell_color};font-weight:800;">${correct ? '✓' : '✗'}</td>`;
+            if (isT2) { t2total++; if(correct) t2right++; }
+            else { t1total++; if(correct) t1right++; }
+          }
+        });
+
+        const t1pct = t1total ? Math.round(t1right/t1total*100)+'%' : '—';
+        const t2pct = t2total ? Math.round(t2right/t2total*100)+'%' : '—';
+        html += `<td style="padding:5px 8px;text-align:center;font-weight:800;color:#085041;">${t1pct}</td>`;
+        html += `<td style="padding:5px 8px;text-align:center;font-weight:800;color:#7c3aed;">${t2pct}</td>`;
+        html += '</tr>';
+      });
+
+      html += '</tbody></table>';
+      document.getElementById('db-grid-wrap').innerHTML = html;
+    }
+    window.renderGrid = renderGrid;
+
+      window.addFB = function(id, name){
+        const fb=prompt('Feedback for ' + name + ':');
+        if(fb) fetch(APPS_SCRIPT_URL,
+          {method:'POST',body:JSON.stringify({action:'saveELDFeedback',password:'galileo2026',submissionId:id,studentName:name,feedback:fb})})
+          .then(()=>alert('Saved!'));
+      };
+    }
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', initDashboard);
+  } else {
+    initDashboard();
+  }
+
+
+// Make functions global
+window.switchTab = switchTab;
+window.renderGrid = renderGrid;
+</script>
+</body>
+</html>
