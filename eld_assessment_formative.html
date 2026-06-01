@@ -1334,19 +1334,43 @@ let infractions = 0;
 
 function enableLockdown() {
   lockdownActive = true;
-  const el = document.documentElement;
-  if (el.requestFullscreen) el.requestFullscreen().catch(()=>{});
-  else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  // Try fullscreen — non-blocking, failure is fine
+  try {
+    const el = document.documentElement;
+    if (el.requestFullscreen) el.requestFullscreen().catch(()=>{});
+    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  } catch(e) {}
+  // Block back button
   history.pushState(null, '', location.href);
   window.addEventListener('popstate', function() {
     history.pushState(null, '', location.href);
   });
+  // Block right-click and some keyboard shortcuts
   document.addEventListener('contextmenu', e => e.preventDefault());
   document.addEventListener('keydown', function(e) {
     if (!lockdownActive) return;
-    if ((e.ctrlKey || e.metaKey) && ['c','v','u','s','a','p'].includes(e.key.toLowerCase())) e.preventDefault();
+    if ((e.ctrlKey || e.metaKey) && ['u','s','p'].includes(e.key.toLowerCase())) e.preventDefault();
     if (e.key === 'F12') e.preventDefault();
   });
+  // Start watching for tab switches after a 4-second grace period
+  // (avoids false positives from fullscreen dialog, page load events, etc.)
+  setTimeout(function() {
+    document.addEventListener('visibilitychange', function() {
+      if (document.hidden) triggerLockdownWarning();
+    });
+    let blurCount = 0;
+    window.addEventListener('blur', function() {
+      // Ignore the first blur (often caused by fullscreen dialog)
+      blurCount++;
+      if (blurCount > 1) triggerLockdownWarning();
+    });
+    document.addEventListener('fullscreenchange', function() {
+      if (!document.fullscreenElement && lockdownActive &&
+          state.screen !== 'intro' && state.screen !== 'complete') {
+        triggerLockdownWarning();
+      }
+    });
+  }, 4000);
 }
 
 function triggerLockdownWarning() {
@@ -1360,26 +1384,12 @@ function triggerLockdownWarning() {
 
 function dismissLockdown() {
   document.getElementById('lockdown-overlay').classList.remove('show');
-  const el = document.documentElement;
-  if (el.requestFullscreen) el.requestFullscreen().catch(()=>{});
-  else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  try {
+    const el = document.documentElement;
+    if (el.requestFullscreen) el.requestFullscreen().catch(()=>{});
+    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  } catch(e) {}
 }
-
-document.addEventListener('visibilitychange', function() {
-  if (document.hidden) triggerLockdownWarning();
-});
-// Only watch blur after user has interacted (avoids false positives on load)
-let pageHadFocus = false;
-window.addEventListener('focus', function() { pageHadFocus = true; });
-window.addEventListener('blur', function() {
-  if (pageHadFocus) triggerLockdownWarning();
-});
-document.addEventListener('fullscreenchange', function() {
-  if (!document.fullscreenElement && lockdownActive &&
-      state.screen !== 'intro' && state.screen !== 'complete') {
-    triggerLockdownWarning();
-  }
-});
 
 updateProgress();
 </script>
