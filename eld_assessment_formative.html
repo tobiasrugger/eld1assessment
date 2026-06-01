@@ -133,20 +133,10 @@ textarea{min-height:100px;}
 .img-opt svg{width:100%;height:110px;display:block;border-radius:8px;}
 .img-opt-label{font-size:.8rem;font-weight:700;text-align:center;padding:4px 0 2px;color:var(--gray-900);}
 @media(max-width:480px){.header h1{font-size:1.3rem;}.question-text{font-size:.95rem;}.score-tier-breakdown{grid-template-columns:1fr;}}
-/* LOCKDOWN */
-.lockdown-overlay{position:fixed;inset:0;z-index:9999;background:rgba(8,80,65,.97);display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;}
-.lockdown-overlay.show{display:flex;}
-.lockdown-overlay h2{font-size:1.5rem;font-weight:800;color:white;margin-bottom:.75rem;}
-.lockdown-overlay p{font-size:.95rem;color:rgba(255,255,255,.85);margin-bottom:1.5rem;line-height:1.6;max-width:400px;}
-.lockdown-warn{font-size:.85rem;color:#FCD34D;font-weight:700;margin-bottom:1rem;}
-.lockdown-btn{background:white;color:var(--teal-dark);border:none;border-radius:10px;padding:.85rem 2rem;font-family:var(--font);font-size:1rem;font-weight:800;cursor:pointer;}
 </style>
 </head>
 <body>
 
-<!-- LOCKDOWN OVERLAY -->
-<div class="lockdown-overlay" id="lockdown-overlay">
-  <div style="font-size:3rem;margin-bottom:1rem;">⚠️</div>
   <h2>Please stay on this page</h2>
   <p>You left the assessment window. Your teacher can see when this happens. Please return to the test.</p>
   <div class="lockdown-warn" id="lockdown-warn-count"></div>
@@ -242,7 +232,7 @@ textarea{min-height:100px;}
 
 </main>
 <div style="text-align:center;padding:1.5rem 1rem 2.5rem;font-family:'Nunito',sans-serif;">
-  <a href="?dashboard=1" style="font-size:12px;color:#5F5E5A;text-decoration:none;font-weight:700;border:1px solid #D3D1C7;border-radius:20px;padding:5px 14px;">🏫 Teacher Dashboard</a>
+  <a href="eld_dashboard.html" style="font-size:12px;color:#5F5E5A;text-decoration:none;font-weight:700;border:1px solid #D3D1C7;border-radius:20px;padding:5px 14px;">🏫 Teacher Dashboard</a>
 </div>
 
 <script>
@@ -663,7 +653,6 @@ function startAssessment(){
   state.studentName = document.getElementById('student-name').value.trim();
   state.studentPeriod = document.getElementById('student-period').value.trim();
   state.lang = document.getElementById('lang-select').value;
-  enableLockdown();
   goToQuestion(0);
 }
 
@@ -1301,8 +1290,7 @@ async function submitToDashboard(reportUrl){
     period: state.studentPeriod,
     lang: state.lang,
     mode: MODE,
-    infractions: infractions,
-    reportUrl: reportUrl || null,
+      reportUrl: reportUrl || null,
     timestamp: new Date().toISOString(),
     answers: state.answers
   };
@@ -1326,69 +1314,6 @@ async function submitToDashboard(reportUrl){
       await fetch(fallbackUrl, { redirect: 'follow' });
     } catch(e2){ console.warn('Fallback also failed:', e2); }
   }
-}
-
-// ── LOCKDOWN ──────────────────────────────────────────────
-let lockdownActive = false;
-let infractions = 0;
-
-function enableLockdown() {
-  lockdownActive = true;
-  // Try fullscreen — non-blocking, failure is fine
-  try {
-    const el = document.documentElement;
-    if (el.requestFullscreen) el.requestFullscreen().catch(()=>{});
-    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-  } catch(e) {}
-  // Block back button
-  history.pushState(null, '', location.href);
-  window.addEventListener('popstate', function() {
-    history.pushState(null, '', location.href);
-  });
-  // Block right-click and some keyboard shortcuts
-  document.addEventListener('contextmenu', e => e.preventDefault());
-  document.addEventListener('keydown', function(e) {
-    if (!lockdownActive) return;
-    if ((e.ctrlKey || e.metaKey) && ['u','s','p'].includes(e.key.toLowerCase())) e.preventDefault();
-    if (e.key === 'F12') e.preventDefault();
-  });
-  // Start watching for tab switches after a 4-second grace period
-  // (avoids false positives from fullscreen dialog, page load events, etc.)
-  setTimeout(function() {
-    document.addEventListener('visibilitychange', function() {
-      if (document.hidden) triggerLockdownWarning();
-    });
-    let blurCount = 0;
-    window.addEventListener('blur', function() {
-      // Ignore the first blur (often caused by fullscreen dialog)
-      blurCount++;
-      if (blurCount > 1) triggerLockdownWarning();
-    });
-    document.addEventListener('fullscreenchange', function() {
-      if (!document.fullscreenElement && lockdownActive &&
-          state.screen !== 'intro' && state.screen !== 'complete') {
-        triggerLockdownWarning();
-      }
-    });
-  }, 4000);
-}
-
-function triggerLockdownWarning() {
-  if (!lockdownActive || state.screen === 'intro' || state.screen === 'complete') return;
-  infractions++;
-  state.infractions = infractions;
-  document.getElementById('lockdown-warn-count').textContent =
-    `Tab switch detected: ${infractions} time${infractions > 1 ? 's' : ''} — your teacher will see this.`;
-  document.getElementById('lockdown-overlay').classList.add('show');
-}
-
-function dismissLockdown() {
-  document.getElementById('lockdown-overlay').classList.remove('show');
-  try {
-    const el = document.documentElement;
-    if (el.requestFullscreen) el.requestFullscreen().catch(()=>{});
-    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-  } catch(e) {}
 }
 
 updateProgress();
