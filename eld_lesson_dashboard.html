@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ELD Lesson Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--teal:#1D9E75;--teal-light:#E1F5EE;--teal-dark:#085041;--gray-100:#F1EFE8;--gray-200:#D3D1C7;--gray-500:#5F5E5A;--gray-900:#2C2C2A;--green:#3B6D11;--green-light:#EAF3DE;--red:#A32D2D;--red-light:#FCEBEB;--purple:#534AB7;--purple-light:#EEEDFE;--font:'Nunito',sans-serif;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:#f0f4f8;color:var(--gray-900);min-height:100vh;}
+#login-screen{position:fixed;inset:0;background:rgba(8,80,65,.9);display:flex;align-items:center;justify-content:center;z-index:100;}
+.login-box{background:white;border-radius:16px;padding:2.5rem 2rem;max-width:380px;width:90%;text-align:center;}
+.login-box h1{font-size:1.4rem;font-weight:800;color:var(--teal-dark);margin-bottom:.25rem;}
+.login-box p{font-size:.9rem;color:var(--gray-500);margin-bottom:1.5rem;}
+.login-box input{width:100%;border:2px solid var(--gray-200);border-radius:8px;padding:.75rem;font-family:var(--font);font-size:1rem;margin-bottom:.75rem;text-align:center;}
+.login-box input:focus{outline:none;border-color:var(--teal);}
+.login-box button{width:100%;background:var(--teal);color:white;border:none;border-radius:8px;padding:.8rem;font-family:var(--font);font-size:1rem;font-weight:700;cursor:pointer;}
+.login-err{color:var(--red);font-size:.85rem;margin-top:.5rem;display:none;}
+.site-header{background:linear-gradient(135deg,var(--teal-dark),var(--teal));padding:1.25rem 2rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;}
+.site-header h1{font-size:1.2rem;font-weight:800;color:white;margin:0;}
+.site-header p{font-size:.8rem;color:rgba(255,255,255,.8);margin:2px 0 0;}
+.content{max-width:1100px;margin:1.5rem auto;padding:0 1.5rem 4rem;}
+.filters{background:white;border-radius:12px;padding:1rem 1.5rem;box-shadow:0 2px 8px rgba(0,0,0,.07);margin-bottom:1.5rem;display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
+.filters label{font-size:12px;font-weight:700;color:var(--gray-500);}
+.filters select{border:1.5px solid var(--gray-200);border-radius:6px;padding:5px 10px;font-family:var(--font);font-size:.85rem;min-width:120px;}
+.filters button{padding:7px 16px;border-radius:8px;border:none;background:var(--teal);color:white;font-family:var(--font);font-size:.85rem;font-weight:700;cursor:pointer;}
+.panel{background:white;border-radius:12px;padding:1.5rem;box-shadow:0 2px 16px rgba(0,0,0,.08);margin-bottom:1.5rem;}
+.panel h2{font-size:1rem;font-weight:700;color:var(--teal-dark);margin-bottom:1rem;}
+.tabs{display:flex;gap:8px;margin-bottom:1rem;}
+.tab-btn{padding:7px 18px;border-radius:8px;font-family:var(--font);font-size:.85rem;font-weight:700;cursor:pointer;}
+.tab-btn.active{background:var(--teal);color:white;border:2px solid var(--teal);}
+.tab-btn.inactive{background:white;color:var(--gray-500);border:2px solid var(--gray-200);}
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:.82rem;}
+th{padding:7px 10px;text-align:left;font-weight:700;color:var(--teal-dark);background:var(--gray-100);white-space:nowrap;}
+td{padding:7px 10px;border-bottom:1px solid var(--gray-100);vertical-align:top;}
+.correct-cell{background:var(--green-light);color:var(--green);font-weight:800;text-align:center;}
+.incorrect-cell{background:var(--red-light);color:var(--red);font-weight:800;text-align:center;}
+.empty-cell{color:#ccc;text-align:center;}
+.sticky-col{position:sticky;left:0;background:white;z-index:1;}
+.btn-sm{padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);border:1px solid #9FE1CB;background:var(--teal-light);color:var(--teal-dark);text-decoration:none;display:inline-block;}
+.btn-sm:hover{background:var(--teal);color:white;}
+.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;}
+.badge-teal{background:var(--teal-light);color:var(--teal-dark);}
+.badge-green{background:var(--green-light);color:var(--green);}
+.badge-purple{background:var(--purple-light);color:var(--purple);}
+.progress-row{display:flex;gap:5px;align-items:center;}
+.attempt-dot{width:16px;height:16px;border-radius:50%;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;color:white;flex-shrink:0;}
+.refresh-btn{background:white;border:1.5px solid var(--gray-200);border-radius:8px;padding:5px 14px;font-family:var(--font);font-size:.82rem;font-weight:700;cursor:pointer;color:var(--gray-500);}
+.refresh-btn:hover{border-color:var(--teal);color:var(--teal);}
+/* PROGRESS CARD */
+.progress-card-view{background:white;border-radius:12px;padding:1.5rem;box-shadow:0 2px 16px rgba(0,0,0,.08);margin-bottom:1.5rem;}
+.student-header{display:flex;align-items:center;gap:12px;margin-bottom:1rem;flex-wrap:wrap;}
+.student-name-big{font-size:1.1rem;font-weight:800;color:var(--teal-dark);}
+.attempt-legend{display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--gray-500);font-weight:700;}
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-box">
+    <div style="font-size:2.5rem;margin-bottom:.75rem;">🏫</div>
+    <h1>Lesson Dashboard</h1>
+    <p>ELD Lesson Assessments · Galileo</p>
+    <input type="password" id="pw-input" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button onclick="doLogin()">Enter →</button>
+    <div class="login-err" id="pw-err">Incorrect password</div>
+  </div>
+</div>
+
+<div id="main" style="display:none;">
+  <div class="site-header">
+    <div>
+      <h1>🏫 ELD Lesson Assessment Dashboard</h1>
+      <p>Galileo Academy · Units 1–6 · All Lessons</p>
+    </div>
+    <button class="refresh-btn" onclick="loadData()" style="color:white;border-color:rgba(255,255,255,.4);background:rgba(255,255,255,.15);">↻ Refresh</button>
+  </div>
+
+  <div class="content">
+
+    <!-- FILTERS -->
+    <div class="filters">
+      <label>Unit:
+        <select id="f-unit" onchange="applyFilters()">
+          <option value="">All Units</option>
+          <option value="1">Unit 1: Welcome to School</option>
+          <option value="2">Unit 2: Getting to Know You</option>
+          <option value="3">Unit 3: Community Voices</option>
+          <option value="4">Unit 4: On the Map</option>
+          <option value="5">Unit 5: What in the World?</option>
+          <option value="6">Unit 6: Across Cultures</option>
+        </select>
+      </label>
+      <label>Lesson:
+        <select id="f-lesson" onchange="applyFilters()">
+          <option value="">All Lessons</option>
+        </select>
+      </label>
+      <label>Period:
+        <select id="f-period" onchange="applyFilters()">
+          <option value="">All Periods</option>
+          <option>1</option><option>2</option><option>3</option>
+          <option>4</option><option>5</option><option>6</option><option>7</option>
+        </select>
+      </label>
+      <label>Mode:
+        <select id="f-mode" onchange="applyFilters()">
+          <option value="">Both</option>
+          <option value="formative">Formative</option>
+          <option value="summative">Summative</option>
+        </select>
+      </label>
+      <label>Student:
+        <input type="text" id="f-student" placeholder="Search name..." oninput="applyFilters()"
+          style="border:1.5px solid var(--gray-200);border-radius:6px;padding:5px 10px;font-family:var(--font);font-size:.85rem;min-width:140px;">
+      </label>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <button class="tab-btn active" id="tab-overview-btn" onclick="showTab('overview')">Overview</button>
+      <button class="tab-btn inactive" id="tab-progress-btn" onclick="showTab('progress')">Student Progress Cards</button>
+      <button class="tab-btn inactive" id="tab-grid-btn" onclick="showTab('grid')">Answer Grid</button>
+    </div>
+
+    <!-- OVERVIEW TAB -->
+    <div id="tab-overview">
+      <div class="panel">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem;">
+          <h2 style="margin:0;">All Submissions</h2>
+          <span id="submission-count" style="font-size:.85rem;color:var(--gray-500);font-weight:700;"></span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Student</th><th>Period</th><th>Unit</th><th>Lesson</th>
+              <th>Mode</th><th>Score</th><th>Attempts</th><th>Date</th>
+              <th>🎙</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="overview-body">
+              <tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--gray-500);">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROGRESS CARDS TAB -->
+    <div id="tab-progress" style="display:none;">
+      <div id="progress-cards-wrap">
+        <div class="panel" style="text-align:center;color:var(--gray-500);padding:3rem;">
+          Select a student or load data to see progress cards.
+        </div>
+      </div>
+    </div>
+
+    <!-- ANSWER GRID TAB -->
+    <div id="tab-grid" style="display:none;">
+      <div class="panel">
+        <h2>Answer Grid — Questions × Students</h2>
+        <div class="table-wrap" id="grid-wrap">
+          <p style="color:var(--gray-500);">Loading...</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const SUPA_URL = 'https://lhmwtfyceilgndpygivj.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxobXd0ZnljZWlsZ25kcHlnaXZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxMzk5MDIsImV4cCI6MjA5MTcxNTkwMn0.0uIXyctHMfTN4doWYn2JJ260swD5b-t0T-oDMSIPtBU';
+const PASSWORD = 'galileo2026';
+
+let allResults = []; // raw rows from lesson_assessment_results
+let filtered = [];
+
+function doLogin() {
+  if (document.getElementById('pw-input').value === PASSWORD) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('main').style.display = 'block';
+    loadData();
+  } else {
+    document.getElementById('pw-err').style.display = 'block';
+    document.getElementById('pw-input').value = '';
+    document.getElementById('pw-input').focus();
+  }
+}
+
+async function loadData() {
+  try {
+    const res = await fetch(
+      `${SUPA_URL}/rest/v1/lesson_assessment_results?select=*&order=timestamp.desc&limit=2000`,
+      { headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}` } }
+    );
+    allResults = await res.json();
+    if (!Array.isArray(allResults)) {
+      console.error('Unexpected response:', allResults);
+      allResults = [];
+    }
+    applyFilters();
+  } catch(e) {
+    document.getElementById('overview-body').innerHTML =
+      `<tr><td colspan="10" style="color:#A32D2D;text-align:center;padding:1rem;">Error: ${e.message}</td></tr>`;
+  }
+}
+
+function applyFilters() {
+  const unit = document.getElementById('f-unit').value;
+  const lesson = document.getElementById('f-lesson').value;
+  const period = document.getElementById('f-period').value;
+  const mode = document.getElementById('f-mode').value;
+  const student = document.getElementById('f-student').value.toLowerCase();
+
+  // Update lesson dropdown based on unit
+  if (unit) {
+    const lessonSel = document.getElementById('f-lesson');
+    const current = lessonSel.value;
+    lessonSel.innerHTML = '<option value="">All Lessons</option>';
+    for (let i=1; i<=13; i++) {
+      lessonSel.innerHTML += `<option value="${i}" ${current==i?'selected':''}>Lesson ${i}</option>`;
+    }
+  }
+
+  filtered = allResults.filter(r => {
+    if (unit && String(r.unit) !== unit) return false;
+    if (lesson && String(r.lesson_num) !== lesson) return false;
+    if (period && String(r.period) !== period) return false;
+    if (mode && r.mode !== mode) return false;
+    if (student && !r.student_name?.toLowerCase().includes(student)) return false;
+    return true;
+  });
+
+  renderOverview();
+  renderProgressCards();
+  renderGrid();
+}
+
+// ── OVERVIEW ──────────────────────────────────────────────
+function renderOverview() {
+  // Group by student + unit + lesson + mode + attempt session
+  // Sessions: group rows with same student+unit+lesson+mode+timestamp (within 5min window)
+  const sessions = groupIntoSessions(filtered);
+  document.getElementById('submission-count').textContent = `${sessions.length} sessions`;
+
+  if (!sessions.length) {
+    document.getElementById('overview-body').innerHTML =
+      '<tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--gray-500);">No submissions found.</td></tr>';
+    return;
+  }
+
+  document.getElementById('overview-body').innerHTML = sessions.map(s => {
+    const correct = s.rows.filter(r => r.is_correct === true).length;
+    const total = s.rows.filter(r => r.is_correct !== null).length;
+    const pct = total ? Math.round(correct/total*100) : null;
+    const recs = s.rows.filter(r => r.recording_url);
+    const date = new Date(s.timestamp).toLocaleDateString();
+    const modeColor = s.mode === 'formative' ? 'var(--teal)' : 'var(--purple)';
+
+    return `<tr>
+      <td><strong>${s.student_name||'—'}</strong></td>
+      <td>${s.period||'—'}</td>
+      <td>U${s.unit}</td>
+      <td>L${s.lesson_num}</td>
+      <td><span class="badge" style="background:${s.mode==='formative'?'var(--teal-light)':'var(--purple-light)'};color:${modeColor};">${s.mode}</span></td>
+      <td>${pct !== null ? `<strong>${correct}/${total}</strong> (${pct}%)` : '—'}</td>
+      <td><span class="badge badge-teal">#${s.attemptNum}</span></td>
+      <td>${date}</td>
+      <td>${recs.map(r=>`<a href="${r.recording_url}" target="_blank" class="btn-sm">🎙</a>`).join('') || '—'}</td>
+      <td>
+        <button class="btn-sm" onclick="showStudentCard('${s.student_name}',${s.unit},${s.lesson_num})">Progress</button>
+        <button class="btn-sm" style="margin-left:3px;" onclick="addNote('${s.session_id}','${(s.student_name||'').replace(/'/g,"\\'")}')">Note</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function groupIntoSessions(rows) {
+  // Group by student + unit + lesson + mode, then sort by time to assign attempt numbers
+  const map = {};
+  rows.forEach(r => {
+    const key = `${r.student_name}|${r.unit}|${r.lesson_num}|${r.mode}`;
+    if (!map[key]) map[key] = [];
+    map[key].push(r);
+  });
+
+  const sessions = [];
+  Object.entries(map).forEach(([key, rows]) => {
+    // Sort by timestamp, group into sessions (rows within 10 min of each other)
+    rows.sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
+    let currentSession = [];
+    let lastTime = null;
+    let attemptNum = 1;
+
+    rows.forEach(r => {
+      const t = new Date(r.timestamp);
+      if (lastTime && (t - lastTime) > 600000) { // 10 min gap = new session
+        sessions.push(buildSession(currentSession, attemptNum++));
+        currentSession = [];
+      }
+      currentSession.push(r);
+      lastTime = t;
+    });
+    if (currentSession.length) sessions.push(buildSession(currentSession, attemptNum));
+  });
+
+  // Sort sessions by timestamp desc
+  sessions.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+  return sessions;
+}
+
+function buildSession(rows, attemptNum) {
+  const r = rows[0];
+  return {
+    session_id: `${r.student_name}_${r.unit}_${r.lesson_num}_${r.mode}_${attemptNum}`,
+    student_name: r.student_name,
+    period: r.period,
+    unit: r.unit,
+    lesson_num: r.lesson_num,
+    mode: r.mode,
+    timestamp: r.timestamp,
+    attemptNum,
+    rows
+  };
+}
+
+// ── PROGRESS CARDS ────────────────────────────────────────
+function renderProgressCards() {
+  // Get unique students from filtered data
+  const students = [...new Set(filtered.map(r => r.student_name).filter(Boolean))].sort();
+
+  if (!students.length) {
+    document.getElementById('progress-cards-wrap').innerHTML =
+      '<div class="panel" style="text-align:center;color:var(--gray-500);padding:3rem;">No student data found with current filters.</div>';
+    return;
+  }
+
+  const wrap = document.getElementById('progress-cards-wrap');
+  wrap.innerHTML = students.map(name => renderStudentCard(name)).join('');
+}
+
+function renderStudentCard(studentName) {
+  const studentRows = filtered.filter(r => r.student_name === studentName);
+  const sessions = groupIntoSessions(studentRows);
+  const maxAttempts = sessions.length > 0 ? Math.max(...sessions.map(s => s.attemptNum)) : 0;
+
+  // Get unique questions across all sessions
+  const allQuestions = [...new Set(studentRows.map(r => r.question_id))];
+
+  if (!allQuestions.length) return '';
+
+  let html = `<div class="panel" style="margin-bottom:1.5rem;">`;
+  html += `<div class="student-header">
+    <div class="student-name-big">${studentName}</div>
+    <span class="badge badge-teal">Period ${studentRows[0]?.period||'?'}</span>
+    <span class="badge badge-purple">${sessions.length} attempts</span>
+  </div>`;
+
+  // Per lesson breakdown
+  const lessons = [...new Set(studentRows.map(r => `${r.unit}_${r.lesson_num}`))].sort();
+
+  lessons.forEach(lessonKey => {
+    const [unit, lesson] = lessonKey.split('_');
+    const lessonRows = studentRows.filter(r => r.unit == unit && r.lesson_num == lesson);
+    const lessonSessions = groupIntoSessions(lessonRows);
+
+    html += `<div style="margin-bottom:1rem;">`;
+    html += `<div style="font-size:.85rem;font-weight:800;color:var(--teal-dark);margin-bottom:.5rem;padding:.4rem .6rem;background:var(--teal-light);border-radius:6px;display:inline-block;">Unit ${unit} · Lesson ${lesson}</div>`;
+
+    // Table: questions as rows, attempts as columns
+    const qIds = [...new Set(lessonRows.map(r => r.question_id))];
+    const nAttempts = lessonSessions.length;
+
+    html += `<div style="overflow-x:auto;"><table style="border-collapse:collapse;font-size:.78rem;width:100%;">`;
+    html += `<thead><tr>`;
+    html += `<th style="padding:5px 8px;background:var(--gray-100);text-align:left;">Question</th>`;
+    html += `<th style="padding:5px 8px;background:var(--gray-100);text-align:left;">Type</th>`;
+    for (let a=1; a<=nAttempts; a++) {
+      const date = new Date(lessonSessions[a-1]?.timestamp).toLocaleDateString('en',{month:'short',day:'numeric'});
+      html += `<th style="padding:5px 8px;background:var(--gray-100);text-align:center;min-width:60px;">
+        <div style="font-weight:800;">Attempt ${a}</div>
+        <div style="font-size:10px;color:var(--gray-500);">${date}</div>
+        <div style="font-size:10px;color:${lessonSessions[a-1]?.mode==='formative'?'var(--teal)':'var(--purple)'};">${lessonSessions[a-1]?.mode||''}</div>
+      </th>`;
+    }
+    html += `</tr></thead><tbody>`;
+
+    qIds.forEach(qid => {
+      const firstRow = lessonRows.find(r => r.question_id === qid);
+      html += `<tr>`;
+      html += `<td style="padding:5px 8px;font-weight:700;">${firstRow?.word || qid}</td>`;
+      html += `<td style="padding:5px 8px;color:var(--gray-500);">${firstRow?.question_type||''}</td>`;
+
+      lessonSessions.forEach(session => {
+        const ans = session.rows.find(r => r.question_id === qid);
+        if (!ans) {
+          html += `<td class="empty-cell" style="padding:5px 6px;">—</td>`;
+        } else if (ans.is_correct === true) {
+          html += `<td class="correct-cell" style="padding:5px 6px;">✓</td>`;
+        } else if (ans.is_correct === false) {
+          html += `<td class="incorrect-cell" style="padding:5px 6px;">✗</td>`;
+        } else {
+          // Written — show score if available
+          html += `<td style="padding:5px 6px;text-align:center;color:var(--gray-500);">${ans.score ? ans.score+'/4' : '✍'}</td>`;
+        }
+      });
+      html += `</tr>`;
+    });
+
+    // Score row
+    html += `<tr style="background:var(--gray-100);">`;
+    html += `<td colspan="2" style="padding:5px 8px;font-weight:800;color:var(--teal-dark);">Score</td>`;
+    lessonSessions.forEach(s => {
+      const correct = s.rows.filter(r => r.is_correct === true).length;
+      const total = s.rows.filter(r => r.is_correct !== null).length;
+      html += `<td style="padding:5px 6px;text-align:center;font-weight:800;color:var(--teal-dark);">${total?Math.round(correct/total*100)+'%':'—'}</td>`;
+    });
+    html += `</tr></tbody></table></div>`;
+    html += `</div>`;
+  });
+
+  html += `</div>`;
+  return html;
+}
+
+function showStudentCard(name, unit, lesson) {
+  // Switch to progress tab and filter
+  document.getElementById('f-unit').value = unit;
+  document.getElementById('f-lesson').value = lesson;
+  document.getElementById('f-student').value = name;
+  applyFilters();
+  showTab('progress');
+}
+
+// ── ANSWER GRID ───────────────────────────────────────────
+function renderGrid() {
+  const students = [...new Set(filtered.map(r => r.student_name).filter(Boolean))].sort();
+  const questions = [...new Set(filtered.map(r => r.question_id))];
+
+  if (!students.length || !questions.length) {
+    document.getElementById('grid-wrap').innerHTML = '<p style="color:var(--gray-500);">No data.</p>';
+    return;
+  }
+
+  let html = '<table style="border-collapse:collapse;font-size:.72rem;">';
+  html += '<thead><tr>';
+  html += '<th class="sticky-col" style="padding:6px 10px;background:#F1EFE8;">Student</th>';
+  html += '<th style="padding:6px 6px;background:#F1EFE8;">Per.</th>';
+  questions.forEach(q => {
+    const word = filtered.find(r => r.question_id === q)?.word || q;
+    html += `<th style="padding:4px 5px;text-align:center;background:#F1EFE8;min-width:36px;white-space:nowrap;max-width:60px;overflow:hidden;text-overflow:ellipsis;" title="${q}">${word||q}</th>`;
+  });
+  html += '</tr></thead><tbody>';
+
+  students.forEach((name, i) => {
+    const bg = i%2===0?'white':'#fafaf8';
+    html += `<tr style="background:${bg};">`;
+    html += `<td class="sticky-col" style="padding:5px 10px;font-weight:700;background:${bg};">${name}</td>`;
+    const studentRows = filtered.filter(r => r.student_name === name);
+    html += `<td style="padding:5px 6px;text-align:center;">${studentRows[0]?.period||'—'}</td>`;
+    questions.forEach(q => {
+      // Get most recent attempt for this question
+      const ans = studentRows.filter(r => r.question_id === q).sort((a,b) => new Date(b.timestamp)-new Date(a.timestamp))[0];
+      if (!ans) { html += `<td class="empty-cell">—</td>`; }
+      else if (ans.is_correct === true) { html += `<td class="correct-cell">✓</td>`; }
+      else if (ans.is_correct === false) { html += `<td class="incorrect-cell">✗</td>`; }
+      else { html += `<td style="text-align:center;">✍</td>`; }
+    });
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  document.getElementById('grid-wrap').innerHTML = html;
+}
+
+function showTab(tab) {
+  ['overview','progress','grid'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t===tab?'block':'none';
+    document.getElementById('tab-'+t+'-btn').className = 'tab-btn ' + (t===tab?'active':'inactive');
+  });
+}
+
+async function addNote(sessionId, studentName) {
+  const note = prompt(`Add note for ${studentName}:`);
+  if (!note) return;
+  // Could save to a notes table — for now just alert
+  alert('Note saved! (Note storage coming soon)');
+}
+
+document.addEventListener('keydown', e => {
+  if (document.getElementById('login-screen').style.display !== 'none' && e.key === 'Enter') doLogin();
+});
+</script>
+</body>
+</html>
