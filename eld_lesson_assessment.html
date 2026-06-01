@@ -437,8 +437,7 @@ async function getAIFeedback(isCorrect, context, qid) {
     const res = await fetch(CLAUDE_API, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:200,messages:[{role:'user',content:prompt}]})});
     const data = await res.json();
     const text = (data.content && data.content[0] && data.content[0].text) || (isCorrect ? 'Great job!' : 'Keep practicing!');
-    const lines = text.split('
-').filter(function(l){return l.trim();});
+    const lines = text.split('\n').filter(function(l){return l.trim();});
     const eng = lines.slice(0,2).join(' ');
     const nat = lines.slice(2).join(' ');
     document.getElementById('feedback-area').innerHTML =
