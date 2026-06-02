@@ -90,8 +90,8 @@ td{padding:8px 10px;border-bottom:1px solid var(--gray-100);vertical-align:middl
         <table>
           <thead><tr>
             <th>Student</th><th>Period</th><th>Lang</th>
-            <th>Tier 1</th><th>Tier 2</th><th>Writing</th>
-            <th>Date</th><th>🎙</th><th>Report</th><th>Feedback</th>
+            <th>T1</th><th>T2</th><th>Date</th>
+            <th>🎙 Recordings</th><th>✍ Writing</th><th>Report</th><th>Feedback</th>
           </tr></thead>
           <tbody id="list-body">
             <tr><td colspan="10" style="text-align:center;color:var(--gray-500);padding:2rem;">Loading...</td></tr>
@@ -127,6 +127,7 @@ function doLogin() {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('main').style.display = 'block';
     loadData();
+    initAnnotationSystem();
   } else {
     document.getElementById('pw-err').style.display = 'block';
     document.getElementById('pw-input').value = '';
@@ -183,8 +184,20 @@ function renderList() {
     return;
   }
   document.getElementById('list-body').innerHTML = allSubs.map(s => {
-    const recs = (s.answers||[]).filter(a => a.recordingUrl)
-      .map(a => '<a href="' + a.recordingUrl + '" target="_blank" class="btn-sm" style="margin:1px;">🎙 Q' + a.questionId + '</a>').join('') || '—';
+    const recs = (s.answers||[]).filter(a => a.recordingUrl).map(a =>
+      '<span style="white-space:nowrap;display:inline-flex;gap:3px;align-items:center;margin:2px;">' +
+      '<a href="' + a.recordingUrl + '" target="_blank" class="btn-sm">🎙 Q' + a.questionId + '</a>' +
+      '<button class="btn-sm" style="background:#534AB7;color:white;border-color:#534AB7;" onclick="openRecordingRubric(\'' + s.submissionId + '\',\'' + (s.studentName||'').replace(/'/g,"\\'\")\'\",\'' + a.questionId + '\',\'' + a.recordingUrl + '\')">Rubric</button>' +
+      '</span>'
+    ).join('') || '—';
+    const writingAnswers = (s.answers||[]).filter(a => a.type === 'written' || a.questionType === 'vocab-write' || a.questionType === 'essay');
+    const writingCells = writingAnswers.map(a => {
+      const preview = (a.value||'').substring(0,5) + (a.value && a.value.length > 5 ? '…' : '');
+      return '<button class="btn-sm" style="max-width:80px;overflow:hidden;text-overflow:ellipsis;" ' +
+        'onclick="openWritingAnnotation(\'' + s.submissionId + '\',\'' + (s.studentName||'').replace(/'/g,"\\'\")\'\",\'' + a.questionId + '\',\'' + (a.value||'').replace(/'/g,"\\'\")\'\")" ' +
+        'title="Q' + a.questionId + ': ' + (a.value||'').substring(0,30) + '">' +
+        (preview || '(empty)') + '</button>';
+    }).join(' ') || '—';
     const report = s.reportUrl
       ? '<button onclick="viewReport(\'' + s.reportUrl + '\')" class="btn-sm btn-report">📄 Report</button>' : '—';
     const date = s.timestamp ? new Date(s.timestamp).toLocaleDateString() : '—';
@@ -194,9 +207,9 @@ function renderList() {
       <td><span class="badge badge-teal">${s.lang||'en'}</span></td>
       <td>${s.t1Total ? s.t1Correct+'/'+s.t1Total : '—'}</td>
       <td>${s.t2Total ? s.t2Correct+'/'+s.t2Total : '—'}</td>
-      <td>${s.writtenCount||0}</td>
       <td>${date}</td>
       <td>${recs}</td>
+      <td>${writingCells}</td>
       <td>${report}</td>
       <td>
         ${s.feedback ? '<span class="badge badge-green">✓</span> ' : ''}
@@ -284,6 +297,554 @@ async function viewReport(url) {
     window.open(URL.createObjectURL(blob), '_blank');
   } catch(e) { alert('Could not load report.'); }
 }
+
+// ── ANNOTATION SYSTEM — reusable across all ELD dashboards ──
+// Drop this script into any dashboard HTML file
+
+const ANNOTATION_SUPA_URL = 'https://lhmwtfyceilgndpygivj.supabase.co';
+const ANNOTATION_SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxobXd0ZnljZWlsZ25kcHlnaXZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxMzk5MDIsImV4cCI6MjA5MTcxNTkwMn0.0uIXyctHMfTN4doWYn2JJ260swD5b-t0T-oDMSIPtBU';
+
+// ── PROOFREADING MARKS CSS ────────────────────────────────
+const ANNOTATION_CSS = `
+.pm-delete { text-decoration: line-through; color: #A32D2D; }
+.pm-capitalize .pm-first { display: inline; text-decoration: underline; text-decoration-style: solid; -webkit-text-decoration-line: underline; border-bottom: 3px double #185FA5; text-decoration: none; padding-bottom: 1px; }
+.pm-lowercase { text-decoration: line-through #993C1D; position: relative; }
+.pm-lowercase::after { content: "/"; position: absolute; top: -2px; left: 30%; color: #993C1D; font-size: 0.9em; }
+.pm-sp { color: #BA7517; text-decoration: underline wavy #BA7517; position: relative; }
+.pm-sp::after { content: "(sp)"; position: absolute; top: -1.1em; left: 50%; transform: translateX(-50%); font-size: 0.65em; font-weight: 700; color: #BA7517; white-space: nowrap; pointer-events: none; }
+.pm-period::after { content: "⊙"; font-size: 1.1em; color: #185FA5; vertical-align: -0.15em; margin-left: 1px; }
+.pm-comma::after { content: "∧"; font-size: 0.8em; color: #185FA5; vertical-align: -0.2em; margin-left: 1px; }
+.pm-apostrophe { position: relative; }
+.pm-apostrophe::after { content: "∧"; position: absolute; top: -0.7em; left: 30%; font-size: 0.7em; color: #185FA5; }
+.pm-quotes { position: relative; }
+.pm-quotes::after { content: "∧∧"; position: absolute; top: -0.7em; left: 20%; font-size: 0.7em; color: #185FA5; letter-spacing: -1px; }
+.pm-newpara::before { content: "\\00b6\\00b6"; font-size: 1.1em; color: #534AB7; margin-right: 3px; font-weight: 700; }
+.pm-nopara { border-bottom: 2px solid #888; display: inline; }
+.pm-transpose { border-top: 2px solid #3B6D11; border-bottom: 2px solid #3B6D11; padding: 2px 0; position: relative; color: #3B6D11; }
+.pm-transpose::before { content: ""; position: absolute; left: -3px; top: 0; bottom: 0; border-left: 2px solid #3B6D11; border-radius: 3px 0 0 3px; }
+.pm-transpose::after { content: ""; position: absolute; right: -3px; top: 0; bottom: 0; border-right: 2px solid #3B6D11; border-radius: 0 3px 3px 0; }
+.pm-addspace::after { content: "#"; font-size: 0.8em; color: #185FA5; margin: 0 2px; }
+.pm-closegap { letter-spacing: -3px; color: #993C1D; }
+.pm-check::after { content: " (?)"; font-size: 0.8em; color: #888; border: 1px solid #888; border-radius: 50%; padding: 0 3px; }
+.pm-insert-point { position: relative; display: inline; }
+.pm-insert-caret { display: inline-block; color: #0F6E56; font-size: 1em; line-height: 1; vertical-align: baseline; margin: 0 1px; }
+.pm-insert-text { display: inline-block; color: #0F6E56; font-size: 0.85em; vertical-align: super; margin: 0 1px; background: rgba(14,110,86,0.07); border-radius: 3px; padding: 0 3px; }
+[data-tip] { cursor: help; }
+[data-tip]:hover::before { content: attr(data-tip); position: absolute; bottom: 120%; left: 50%; transform: translateX(-50%); background: #2C2C2A; color: white; font-size: 11px; padding: 3px 8px; border-radius: 5px; white-space: nowrap; z-index: 9999; pointer-events: none; }
+[data-tip] { position: relative; }
+
+/* Annotation popup overlay */
+.ann-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center; }
+.ann-overlay.open { display: flex; }
+.ann-popup { background: white; border-radius: 14px; width: 90%; max-width: 780px; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 48px rgba(0,0,0,0.25); display: flex; flex-direction: column; }
+.ann-header { padding: 1rem 1.25rem; border-bottom: 1px solid #F1EFE8; display: flex; justify-content: space-between; align-items: center; }
+.ann-header h3 { font-size: 1rem; font-weight: 800; color: #085041; margin: 0; }
+.ann-close { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: #5F5E5A; padding: 0 4px; }
+.ann-body { padding: 1.25rem; flex: 1; }
+.ann-section { margin-bottom: 1.25rem; }
+.ann-section-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: #5F5E5A; margin-bottom: 8px; }
+.ann-toolbar { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+.ann-tool-btn { padding: 4px 9px; border: 1.5px solid #D3D1C7; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; background: white; color: #2C2C2A; font-family: 'Nunito', sans-serif; transition: all .12s; }
+.ann-tool-btn:hover { border-color: #1D9E75; background: #E1F5EE; }
+.ann-tool-btn.active { border-color: #1D9E75; background: #E1F5EE; color: #085041; }
+.ann-editor { min-height: 100px; border: 2px solid #D3D1C7; border-radius: 8px; padding: .75rem; font-size: .95rem; line-height: 2; font-family: 'Nunito', sans-serif; outline: none; }
+.ann-editor:focus { border-color: #1D9E75; }
+.ann-notes { width: 100%; border: 1.5px solid #D3D1C7; border-radius: 8px; padding: .6rem; font-family: 'Nunito', sans-serif; font-size: .9rem; resize: vertical; min-height: 60px; }
+.ann-notes:focus { outline: none; border-color: #1D9E75; }
+.rubric-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+.rubric-label { font-size: .85rem; font-weight: 700; color: #2C2C2A; min-width: 160px; }
+.rubric-btn { padding: 4px 12px; border: 1.5px solid #D3D1C7; border-radius: 20px; font-size: .8rem; font-weight: 700; cursor: pointer; background: white; font-family: 'Nunito', sans-serif; transition: all .12s; }
+.rubric-btn:hover { border-color: #1D9E75; }
+.rubric-btn.sel-1, .rubric-btn.sel-2 { background: #FCEBEB; border-color: #F0997B; color: #A32D2D; }
+.rubric-btn.sel-3 { background: #FAEEDA; border-color: #FAC775; color: #854F0B; }
+.rubric-btn.sel-4 { background: #EAF3DE; border-color: #9FE1CB; color: #3B6D11; }
+.ann-footer { padding: 1rem 1.25rem; border-top: 1px solid #F1EFE8; display: flex; gap: 8px; justify-content: flex-end; }
+.ann-save-btn { background: #1D9E75; color: white; border: none; border-radius: 8px; padding: .6rem 1.5rem; font-family: 'Nunito', sans-serif; font-size: .9rem; font-weight: 700; cursor: pointer; }
+.ann-save-btn:hover { background: #085041; }
+.ann-cancel-btn { background: white; color: #5F5E5A; border: 1.5px solid #D3D1C7; border-radius: 8px; padding: .6rem 1.5rem; font-family: 'Nunito', sans-serif; font-size: .9rem; font-weight: 700; cursor: pointer; }
+
+/* Recording rubric popup */
+.rec-rubric-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.rec-opt { padding: 5px 14px; border: 1.5px solid #D3D1C7; border-radius: 20px; font-size: .82rem; font-weight: 700; cursor: pointer; background: white; font-family: 'Nunito', sans-serif; transition: all .12s; }
+.rec-opt:hover { border-color: #1D9E75; }
+.rec-opt.selected { background: #E1F5EE; border-color: #1D9E75; color: #085041; }
+`;
+
+// ── MARK DEFINITIONS ─────────────────────────────────────
+const MARKS = [
+  { id: 'delete',     label: '—delete',      tip: 'Delete: take out this word/letter',         apply: applyDelete },
+  { id: 'insert',     label: '∧ insert',     tip: 'Insert: add text here',                     apply: applyInsert },
+  { id: 'capitalize', label: '≡ capitalize', tip: 'Capitalize: make this a capital letter',     apply: applyCapitalize },
+  { id: 'lowercase',  label: '/ lowercase',  tip: 'Lowercase: make this a small letter',        apply: applyLowercase },
+  { id: 'sp',         label: '(sp) spell',   tip: 'Spelling error: check this word',            apply: applySp },
+  { id: 'period',     label: '⊙ period',    tip: 'Insert a period here',                       apply: applyPeriod },
+  { id: 'comma',      label: '∧ comma',      tip: 'Insert a comma here',                       apply: applyComma },
+  { id: 'apostrophe', label: "' apostrophe", tip: 'Insert an apostrophe here',                 apply: applyApostrophe },
+  { id: 'quotes',     label: '" quotes',     tip: 'Insert quotation marks here',               apply: applyQuotes },
+  { id: 'newpara',    label: '¶ new para',   tip: 'New paragraph here',                        apply: applyNewPara },
+  { id: 'nopara',     label: '⌒ no para',   tip: 'No paragraph: keep sentences together',     apply: applyNoPara },
+  { id: 'transpose',  label: '↔ transpose',  tip: 'Transpose: switch the order of these words', apply: applyTranspose },
+  { id: 'addspace',   label: '# add space',  tip: 'Add a space here',                          apply: applyAddSpace },
+  { id: 'closegap',   label: '⌢ close gap',  tip: 'No space: close the gap',                  apply: applyCloseGap },
+  { id: 'check',      label: '? check',      tip: 'Is this correct? Check it',                 apply: applyCheck },
+];
+
+let annState = {
+  mode: 'writing', // 'writing' | 'recording'
+  submissionId: null,
+  studentName: null,
+  questionId: null,
+  recordingUrl: null,
+  existingFeedbackId: null,
+};
+
+// ── INJECT CSS & HTML ─────────────────────────────────────
+function initAnnotationSystem() {
+  // Inject CSS
+  const style = document.createElement('style');
+  style.textContent = ANNOTATION_CSS;
+  document.head.appendChild(style);
+
+  // Inject popup HTML
+  const div = document.createElement('div');
+  div.innerHTML = `
+    <!-- WRITING ANNOTATION POPUP -->
+    <div class="ann-overlay" id="ann-writing-overlay">
+      <div class="ann-popup">
+        <div class="ann-header">
+          <h3 id="ann-writing-title">Annotate Writing</h3>
+          <button class="ann-close" onclick="closeAnnotation()">✕</button>
+        </div>
+        <div class="ann-body">
+          <div class="ann-section">
+            <div class="ann-section-label">Proofreading marks toolbar — select text, then click a mark</div>
+            <div class="ann-toolbar" id="ann-toolbar"></div>
+          </div>
+          <div class="ann-section">
+            <div class="ann-section-label">Student writing — select text and apply marks, or type to insert</div>
+            <div class="ann-editor" id="ann-editor" contenteditable="true" spellcheck="false"></div>
+          </div>
+          <div class="ann-section">
+            <div class="ann-section-label">Rubric scores</div>
+            <div id="ann-rubric"></div>
+          </div>
+          <div class="ann-section">
+            <div class="ann-section-label">Teacher notes</div>
+            <textarea class="ann-notes" id="ann-notes" placeholder="Add notes for this student..."></textarea>
+          </div>
+        </div>
+        <div class="ann-footer">
+          <button class="ann-cancel-btn" onclick="closeAnnotation()">Cancel</button>
+          <button class="ann-save-btn" onclick="saveWritingAnnotation()">Save Feedback</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RECORDING RUBRIC POPUP -->
+    <div class="ann-overlay" id="ann-recording-overlay">
+      <div class="ann-popup" style="max-width:480px;">
+        <div class="ann-header">
+          <h3 id="ann-rec-title">Recording Feedback</h3>
+          <button class="ann-close" onclick="closeAnnotation()">✕</button>
+        </div>
+        <div class="ann-body">
+          <div class="ann-section">
+            <audio id="ann-rec-player" controls style="width:100%;margin-bottom:1rem;"></audio>
+          </div>
+          <div class="ann-section">
+            <div class="ann-section-label">Loudness</div>
+            <div class="rec-rubric-row">
+              <button class="rec-opt" data-group="loudness" data-val="Too Quiet" onclick="selectRecOpt(this)">🔇 Too Quiet</button>
+              <button class="rec-opt" data-group="loudness" data-val="Good" onclick="selectRecOpt(this)">👍 Good</button>
+              <button class="rec-opt" data-group="loudness" data-val="Too Loud" onclick="selectRecOpt(this)">🔊 Too Loud</button>
+            </div>
+          </div>
+          <div class="ann-section">
+            <div class="ann-section-label">Pronunciation</div>
+            <div class="rec-rubric-row">
+              <button class="rec-opt" data-group="pronunciation" data-val="Needs Work" onclick="selectRecOpt(this)">😬 Needs Work</button>
+              <button class="rec-opt" data-group="pronunciation" data-val="Mostly Clear" onclick="selectRecOpt(this)">🙂 Mostly Clear</button>
+              <button class="rec-opt" data-group="pronunciation" data-val="Very Clear" onclick="selectRecOpt(this)">✓ Very Clear</button>
+            </div>
+          </div>
+          <div class="ann-section">
+            <div class="ann-section-label">Notes</div>
+            <textarea class="ann-notes" id="ann-rec-notes" placeholder="Add notes..."></textarea>
+          </div>
+        </div>
+        <div class="ann-footer">
+          <button class="ann-cancel-btn" onclick="closeAnnotation()">Cancel</button>
+          <button class="ann-save-btn" onclick="saveRecordingFeedback()">Save Feedback</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(div);
+
+  // Build toolbar
+  const toolbar = document.getElementById('ann-toolbar');
+  MARKS.forEach(mark => {
+    const btn = document.createElement('button');
+    btn.className = 'ann-tool-btn';
+    btn.textContent = mark.label;
+    btn.title = mark.tip;
+    btn.onclick = () => applyMark(mark.id);
+    toolbar.appendChild(btn);
+  });
+
+  // Build rubric
+  const rubricCriteria = ['Grammar', 'Relevant Vocabulary', 'Details', 'Punctuation & Capitals'];
+  const rubricDiv = document.getElementById('ann-rubric');
+  rubricCriteria.forEach(c => {
+    const row = document.createElement('div');
+    row.className = 'rubric-row';
+    row.innerHTML = `<span class="rubric-label">${c}</span>` +
+      [1,2,3,4].map(n => `<button class="rubric-btn" data-criterion="${c}" data-score="${n}" onclick="selectRubric(this)">${n}</button>`).join('');
+    rubricDiv.appendChild(row);
+  });
+}
+
+// ── OPEN POPUPS ──────────────────────────────────────────
+function openWritingAnnotation(submissionId, studentName, questionId, originalText) {
+  annState = { mode: 'writing', submissionId, studentName, questionId };
+  document.getElementById('ann-writing-title').textContent = 'Annotate Writing — ' + studentName + ' Q' + questionId;
+  document.getElementById('ann-editor').innerHTML = escapeHtml(originalText);
+  document.getElementById('ann-notes').value = '';
+  // Reset rubric
+  document.querySelectorAll('.rubric-btn').forEach(b => b.className = 'rubric-btn');
+  // Load existing feedback if any
+  loadWritingFeedback(submissionId, questionId);
+  document.getElementById('ann-writing-overlay').classList.add('open');
+}
+
+function openRecordingRubric(submissionId, studentName, questionId, recordingUrl) {
+  annState = { mode: 'recording', submissionId, studentName, questionId, recordingUrl };
+  document.getElementById('ann-rec-title').textContent = 'Recording — ' + studentName + ' Q' + questionId;
+  document.getElementById('ann-rec-player').src = recordingUrl;
+  document.getElementById('ann-rec-notes').value = '';
+  document.querySelectorAll('.rec-opt').forEach(b => b.classList.remove('selected'));
+  loadRecordingFeedback(submissionId, questionId);
+  document.getElementById('ann-recording-overlay').classList.add('open');
+}
+
+function closeAnnotation() {
+  document.getElementById('ann-writing-overlay').classList.remove('open');
+  document.getElementById('ann-recording-overlay').classList.remove('open');
+}
+
+// ── MARK APPLICATION ─────────────────────────────────────
+function applyMark(markId) {
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0 || sel.isCollapsed) {
+    if (markId === 'insert' || markId === 'period' || markId === 'comma' || markId === 'addspace') {
+      applyAtCursor(markId);
+    }
+    return;
+  }
+  const range = sel.getRangeAt(0);
+  const editor = document.getElementById('ann-editor');
+  if (!editor.contains(range.commonAncestorContainer)) return;
+
+  const mark = MARKS.find(m => m.id === markId);
+  if (mark) mark.apply(range, sel);
+}
+
+function wrapRange(range, className, tip, extraHtml) {
+  const span = document.createElement('span');
+  span.className = className;
+  if (tip) span.setAttribute('data-tip', tip);
+  if (extraHtml) span.innerHTML = extraHtml;
+  try {
+    range.surroundContents(span);
+  } catch(e) {
+    // If surroundContents fails (crosses node boundary), extract and wrap
+    const frag = range.extractContents();
+    span.appendChild(frag);
+    range.insertNode(span);
+  }
+  window.getSelection().removeAllRanges();
+}
+
+function applyDelete(range) {
+  wrapRange(range, 'pm-delete', 'Delete this');
+}
+
+function applyInsert(range, sel) {
+  // Get selected text as insertion text
+  const text = range.toString();
+  if (!text) return;
+  // Delete the selection, insert caret + floating text
+  range.deleteContents();
+  const span = document.createElement('span');
+  span.className = 'pm-insert-point';
+  span.innerHTML = '<span class="pm-insert-caret" data-tip="Insert: ' + text + '">∧</span><span class="pm-insert-text">' + text + '</span>';
+  range.insertNode(span);
+  sel.removeAllRanges();
+}
+
+function applyCapitalize(range) {
+  const text = range.toString();
+  if (!text) return;
+  range.deleteContents();
+  const span = document.createElement('span');
+  span.setAttribute('data-tip', 'Capitalize this letter');
+  span.innerHTML = '<span class="pm-capitalize" style="border-bottom: 3px double #185FA5; padding-bottom:1px;">' + text.charAt(0) + '</span>' + text.slice(1);
+  range.insertNode(span);
+  window.getSelection().removeAllRanges();
+}
+
+function applyLowercase(range) {
+  wrapRange(range, 'pm-lowercase', 'Make this lowercase');
+}
+
+function applySp(range) {
+  wrapRange(range, 'pm-sp', 'Spelling error — check this word');
+}
+
+function applyPeriod(range) {
+  wrapRange(range, 'pm-period', 'Insert a period here');
+}
+
+function applyComma(range) {
+  wrapRange(range, 'pm-comma', 'Insert a comma here');
+}
+
+function applyApostrophe(range) {
+  wrapRange(range, 'pm-apostrophe', 'Insert an apostrophe here');
+}
+
+function applyQuotes(range) {
+  wrapRange(range, 'pm-quotes', 'Insert quotation marks here');
+}
+
+function applyNewPara(range) {
+  wrapRange(range, 'pm-newpara', 'New paragraph here');
+}
+
+function applyNoPara(range) {
+  wrapRange(range, 'pm-nopara', 'No paragraph — keep sentences together');
+}
+
+function applyTranspose(range) {
+  wrapRange(range, 'pm-transpose', 'Transpose: switch the order of these words');
+}
+
+function applyAddSpace(range) {
+  wrapRange(range, 'pm-addspace', 'Add a space here');
+}
+
+function applyCloseGap(range) {
+  wrapRange(range, 'pm-closegap', 'Close the gap — no space here');
+}
+
+function applyCheck(range) {
+  wrapRange(range, 'pm-check', 'Is this correct? Check it');
+}
+
+function applyAtCursor(markId) {
+  const editor = document.getElementById('ann-editor');
+  editor.focus();
+  // Insert mark at cursor position
+  const marks = {
+    period: '<span class="pm-period" data-tip="Insert period"> </span>',
+    comma: '<span class="pm-comma" data-tip="Insert comma"> </span>',
+    addspace: '<span class="pm-addspace" data-tip="Add space"> </span>',
+    insert: '<span class="pm-insert-point"><span class="pm-insert-caret" data-tip="Insert here">∧</span><span class="pm-insert-text" contenteditable="true">text</span></span>',
+  };
+  document.execCommand('insertHTML', false, marks[markId] || '');
+}
+
+// ── RUBRIC SELECTION ─────────────────────────────────────
+function selectRubric(btn) {
+  const criterion = btn.dataset.criterion;
+  document.querySelectorAll('.rubric-btn[data-criterion="' + criterion + '"]').forEach(b => {
+    b.className = 'rubric-btn';
+  });
+  btn.className = 'rubric-btn sel-' + btn.dataset.score;
+}
+
+function selectRecOpt(btn) {
+  const group = btn.dataset.group;
+  document.querySelectorAll('.rec-opt[data-group="' + group + '"]').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+function getRubricScores() {
+  const scores = {};
+  document.querySelectorAll('.rubric-btn[class*="sel-"]').forEach(b => {
+    scores[b.dataset.criterion] = parseInt(b.dataset.score);
+  });
+  return scores;
+}
+
+// ── SAVE / LOAD ──────────────────────────────────────────
+async function saveWritingAnnotation() {
+  const btn = document.querySelector('#ann-writing-overlay .ann-save-btn');
+  btn.textContent = 'Saving...'; btn.disabled = true;
+
+  const editor = document.getElementById('ann-editor');
+  const annotatedHtml = editor.innerHTML;
+  const scores = getRubricScores();
+  const notes = document.getElementById('ann-notes').value;
+
+  const payload = {
+    submission_id: annState.submissionId,
+    student_name: annState.studentName,
+    question_id: annState.questionId,
+    annotated_html: annotatedHtml,
+    grammar_score: scores['Grammar'] || null,
+    vocabulary_score: scores['Relevant Vocabulary'] || null,
+    details_score: scores['Details'] || null,
+    punctuation_score: scores['Punctuation & Capitals'] || null,
+    notes,
+    updated_at: new Date().toISOString(),
+  };
+
+  try {
+    // Upsert by submission_id + question_id
+    const existing = annState.existingFeedbackId;
+    let url = ANNOTATION_SUPA_URL + '/rest/v1/writing_feedback';
+    let method = 'POST';
+    let prefer = 'return=representation';
+    if (existing) {
+      url += '?id=eq.' + existing;
+      method = 'PATCH';
+    }
+    const res = await fetch(url, {
+      method,
+      headers: {
+        'apikey': ANNOTATION_SUPA_KEY,
+        'Authorization': 'Bearer ' + ANNOTATION_SUPA_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': prefer,
+      },
+      body: JSON.stringify(existing ? payload : { ...payload, original_text: editor.textContent }),
+    });
+    if (res.ok) {
+      closeAnnotation();
+      alert('Feedback saved!');
+      if (typeof loadData === 'function') loadData();
+    } else {
+      alert('Error saving: ' + await res.text());
+    }
+  } catch(e) {
+    alert('Error: ' + e.message);
+  }
+  btn.textContent = 'Save Feedback'; btn.disabled = false;
+}
+
+async function saveRecordingFeedback() {
+  const btn = document.querySelector('#ann-recording-overlay .ann-save-btn');
+  btn.textContent = 'Saving...'; btn.disabled = true;
+
+  const loudness = document.querySelector('.rec-opt[data-group="loudness"].selected')?.dataset.val || null;
+  const pronunciation = document.querySelector('.rec-opt[data-group="pronunciation"].selected')?.dataset.val || null;
+  const notes = document.getElementById('ann-rec-notes').value;
+
+  const payload = {
+    submission_id: annState.submissionId,
+    student_name: annState.studentName,
+    question_id: annState.questionId,
+    recording_url: annState.recordingUrl,
+    loudness,
+    pronunciation,
+    notes,
+    updated_at: new Date().toISOString(),
+  };
+
+  try {
+    const existing = annState.existingFeedbackId;
+    let url = ANNOTATION_SUPA_URL + '/rest/v1/recording_feedback';
+    let method = 'POST';
+    if (existing) { url += '?id=eq.' + existing; method = 'PATCH'; }
+    const res = await fetch(url, {
+      method,
+      headers: {
+        'apikey': ANNOTATION_SUPA_KEY,
+        'Authorization': 'Bearer ' + ANNOTATION_SUPA_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation',
+      },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      closeAnnotation();
+      alert('Recording feedback saved!');
+      if (typeof loadData === 'function') loadData();
+    } else {
+      alert('Error saving: ' + await res.text());
+    }
+  } catch(e) {
+    alert('Error: ' + e.message);
+  }
+  btn.textContent = 'Save Feedback'; btn.disabled = false;
+}
+
+async function loadWritingFeedback(submissionId, questionId) {
+  try {
+    const res = await fetch(
+      ANNOTATION_SUPA_URL + '/rest/v1/writing_feedback?submission_id=eq.' + submissionId + '&question_id=eq.' + questionId + '&limit=1',
+      { headers: { 'apikey': ANNOTATION_SUPA_KEY, 'Authorization': 'Bearer ' + ANNOTATION_SUPA_KEY } }
+    );
+    const data = await res.json();
+    if (data.length) {
+      const fb = data[0];
+      annState.existingFeedbackId = fb.id;
+      document.getElementById('ann-editor').innerHTML = fb.annotated_html || escapeHtml(fb.original_text || '');
+      document.getElementById('ann-notes').value = fb.notes || '';
+      // Restore rubric scores
+      const scoreMap = { 'Grammar': fb.grammar_score, 'Relevant Vocabulary': fb.vocabulary_score, 'Details': fb.details_score, 'Punctuation & Capitals': fb.punctuation_score };
+      Object.entries(scoreMap).forEach(([c, s]) => {
+        if (s) {
+          const btn = document.querySelector('.rubric-btn[data-criterion="' + c + '"][data-score="' + s + '"]');
+          if (btn) selectRubric(btn);
+        }
+      });
+    } else {
+      annState.existingFeedbackId = null;
+    }
+  } catch(e) { console.warn('Could not load writing feedback:', e); }
+}
+
+async function loadRecordingFeedback(submissionId, questionId) {
+  try {
+    const res = await fetch(
+      ANNOTATION_SUPA_URL + '/rest/v1/recording_feedback?submission_id=eq.' + submissionId + '&question_id=eq.' + questionId + '&limit=1',
+      { headers: { 'apikey': ANNOTATION_SUPA_KEY, 'Authorization': 'Bearer ' + ANNOTATION_SUPA_KEY } }
+    );
+    const data = await res.json();
+    if (data.length) {
+      const fb = data[0];
+      annState.existingFeedbackId = fb.id;
+      document.getElementById('ann-rec-notes').value = fb.notes || '';
+      if (fb.loudness) {
+        const btn = document.querySelector('.rec-opt[data-group="loudness"][data-val="' + fb.loudness + '"]');
+        if (btn) btn.classList.add('selected');
+      }
+      if (fb.pronunciation) {
+        const btn = document.querySelector('.rec-opt[data-group="pronunciation"][data-val="' + fb.pronunciation + '"]');
+        if (btn) btn.classList.add('selected');
+      }
+    } else {
+      annState.existingFeedbackId = null;
+    }
+  } catch(e) { console.warn('Could not load recording feedback:', e); }
+}
+
+function escapeHtml(text) {
+  return (text || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Close on backdrop click
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('ann-overlay')) closeAnnotation();
+});
+
+// Keyboard shortcut: Escape to close
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeAnnotation();
+});
+
 
 document.addEventListener('keydown', e => {
   if (document.getElementById('login-screen').style.display !== 'none' && e.key === 'Enter') doLogin();
