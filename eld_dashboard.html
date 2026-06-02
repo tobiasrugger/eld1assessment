@@ -89,9 +89,7 @@ td{padding:8px 10px;border-bottom:1px solid var(--gray-100);vertical-align:middl
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th>Student</th><th>Period</th><th>Lang</th>
-            <th>T1</th><th>T2</th><th>Date</th>
-            <th>🎙 Recordings</th><th>✍ Writing</th><th>Report</th><th>Feedback</th>
+            <th>Student</th><th>Period</th><th>Lang</th><th>T1</th><th>T2</th><th>Date</th><th>🎙 Recordings</th><th>✍ Writing</th><th>Report</th><th>Feedback</th>
           </tr></thead>
           <tbody id="list-body">
             <tr><td colspan="10" style="text-align:center;color:var(--gray-500);padding:2rem;">Loading...</td></tr>
@@ -127,7 +125,6 @@ function doLogin() {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('main').style.display = 'block';
     loadData();
-    initAnnotationSystem();
   } else {
     document.getElementById('pw-err').style.display = 'block';
     document.getElementById('pw-input').value = '';
@@ -183,41 +180,71 @@ function renderList() {
       '<tr><td colspan="10" style="text-align:center;color:var(--gray-500);padding:2rem;">No submissions yet.</td></tr>';
     return;
   }
-  document.getElementById('list-body').innerHTML = allSubs.map(s => {
-    const recs = (s.answers||[]).filter(a => a.recordingUrl).map(a =>
-      '<span style="white-space:nowrap;display:inline-flex;gap:3px;align-items:center;margin:2px;">' +
-      '<a href="' + a.recordingUrl + '" target="_blank" class="btn-sm">🎙 Q' + a.questionId + '</a>' +
-      '<button class="btn-sm" style="background:#534AB7;color:white;border-color:#534AB7;" onclick="openRecordingRubric(\'' + s.submissionId + '\',\'' + (s.studentName||'').replace(/'/g,"\\'\")\'\",\'' + a.questionId + '\',\'' + a.recordingUrl + '\')">Rubric</button>' +
-      '</span>'
-    ).join('') || '—';
-    const writingAnswers = (s.answers||[]).filter(a => a.type === 'written' || a.questionType === 'vocab-write' || a.questionType === 'essay');
-    const writingCells = writingAnswers.map(a => {
-      const preview = (a.value||'').substring(0,5) + (a.value && a.value.length > 5 ? '…' : '');
-      return '<button class="btn-sm" style="max-width:80px;overflow:hidden;text-overflow:ellipsis;" ' +
-        'onclick="openWritingAnnotation(\'' + s.submissionId + '\',\'' + (s.studentName||'').replace(/'/g,"\\'\")\'\",\'' + a.questionId + '\',\'' + (a.value||'').replace(/'/g,"\\'\")\'\")" ' +
-        'title="Q' + a.questionId + ': ' + (a.value||'').substring(0,30) + '">' +
-        (preview || '(empty)') + '</button>';
-    }).join(' ') || '—';
-    const report = s.reportUrl
-      ? '<button onclick="viewReport(\'' + s.reportUrl + '\')" class="btn-sm btn-report">📄 Report</button>' : '—';
+  document.getElementById('list-body').innerHTML = allSubs.map(function(s, idx) {
     const date = s.timestamp ? new Date(s.timestamp).toLocaleDateString() : '—';
-    return `<tr>
-      <td><strong>${s.studentName||'—'}</strong></td>
-      <td>${s.period||'—'}</td>
-      <td><span class="badge badge-teal">${s.lang||'en'}</span></td>
-      <td>${s.t1Total ? s.t1Correct+'/'+s.t1Total : '—'}</td>
-      <td>${s.t2Total ? s.t2Correct+'/'+s.t2Total : '—'}</td>
-      <td>${date}</td>
-      <td>${recs}</td>
-      <td>${writingCells}</td>
-      <td>${report}</td>
-      <td>
-        ${s.feedback ? '<span class="badge badge-green">✓</span> ' : ''}
-        <button class="btn-sm" onclick="addFeedback('${s.submissionId}','${(s.studentName||'').replace(/'/g,"\\'")}')">Add</button>
-      </td>
-    </tr>`;
+    const sid = s.submissionId || '';
+    const sname = (s.studentName || '').replace(/\\/g,'').replace(/'/g,'');
+
+    // Recordings
+    const recHtml = (s.answers||[]).filter(function(a){return a.recordingUrl;}).map(function(a) {
+      const qid = a.questionId || '';
+      const rurl = a.recordingUrl || '';
+      return '<span style="white-space:nowrap;display:inline-flex;gap:3px;margin:2px;">'
+        + '<a href="' + rurl + '" target="_blank" class="btn-sm">🎙 Q' + qid + '</a>'
+        + '<button class="btn-sm" style="background:#534AB7;color:white;border-color:#534AB7;" '
+        + 'data-sid="' + sid + '" data-sname="' + sname + '" data-qid="' + qid + '" data-rurl="' + rurl + '" '
+        + 'onclick="handleRecRubric(this)">Rubric</button>'
+        + '</span>';
+    }).join('') || '—';
+
+    // Writing
+    const writingHtml = (s.answers||[]).filter(function(a){
+      return a.type === 'written' || a.questionType === 'vocab-write' || a.questionType === 'essay';
+    }).map(function(a) {
+      const qid = a.questionId || '';
+      const val = (a.value || '').replace(/"/g, '&quot;');
+      const preview = (a.value || '').substring(0,5) + ((a.value||'').length > 5 ? '…' : '');
+      return '<button class="btn-sm" '
+        + 'data-sid="' + sid + '" data-sname="' + sname + '" data-qid="' + qid + '" data-val="' + val + '" '
+        + 'onclick="handleWritingAnnotation(this)" '
+        + 'style="max-width:80px;overflow:hidden;text-overflow:ellipsis;">'
+        + (preview || '(empty)') + '</button>';
+    }).join(' ') || '—';
+
+    const report = s.reportUrl
+      ? '<button data-url="' + s.reportUrl + '" onclick="viewReport(this.dataset.url)" class="btn-sm btn-report">📄 Report</button>'
+      : '—';
+
+    return '<tr>'
+      + '<td><strong>' + (s.studentName||'—') + '</strong></td>'
+      + '<td>' + (s.period||'—') + '</td>'
+      + '<td><span class="badge badge-teal">' + (s.lang||'en') + '</span></td>'
+      + '<td>' + (s.t1Total ? s.t1Correct+'/'+s.t1Total : '—') + '</td>'
+      + '<td>' + (s.t2Total ? s.t2Correct+'/'+s.t2Total : '—') + '</td>'
+      + '<td>' + date + '</td>'
+      + '<td>' + recHtml + '</td>'
+      + '<td>' + writingHtml + '</td>'
+      + '<td>' + report + '</td>'
+      + '<td>'
+      + (s.feedback ? '<span class="badge badge-green">✓</span> ' : '')
+      + '<button class="btn-sm" data-sid="' + sid + '" data-sname="' + sname + '" onclick="handleFeedback(this)">Add</button>'
+      + '</td>'
+      + '</tr>';
   }).join('');
 }
+
+function handleRecRubric(btn) {
+  openRecordingRubric(btn.dataset.sid, btn.dataset.sname, btn.dataset.qid, btn.dataset.rurl);
+}
+
+function handleWritingAnnotation(btn) {
+  openWritingAnnotation(btn.dataset.sid, btn.dataset.sname, btn.dataset.qid, btn.dataset.val);
+}
+
+function handleFeedback(btn) {
+  addFeedback(btn.dataset.sid, btn.dataset.sname);
+}
+
 
 function renderGrid() {
   const period = document.getElementById('period-filter').value;
@@ -276,7 +303,7 @@ function showTab(tab) {
 }
 
 async function addFeedback(submissionId, studentName) {
-  const fb = prompt('Feedback for ' + studentName + ':');
+  const fb = prompt('Feedback for ' + (studentName||'student') + ':');
   if (!fb) return;
   try {
     await fetch(APPS_SCRIPT_URL, {
@@ -848,6 +875,10 @@ document.addEventListener('keydown', function(e) {
 
 document.addEventListener('keydown', e => {
   if (document.getElementById('login-screen').style.display !== 'none' && e.key === 'Enter') doLogin();
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+  initAnnotationSystem();
 });
 </script>
 </body>
