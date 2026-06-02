@@ -197,17 +197,19 @@ function renderList() {
         + '</span>';
     }).join('') || '—';
 
-    // Writing
+    // Writing — tier 3 questions
     const writingHtml = (s.answers||[]).filter(function(a){
-      return a.type === 'written' || a.questionType === 'vocab-write' || a.questionType === 'essay';
+      return a.tier == 3 || a.type === 'vocab-write' || a.type === 'essay' || a.questionType === 'vocab-write' || a.questionType === 'essay';
     }).map(function(a) {
       const qid = a.questionId || '';
-      const val = (a.value || '').replace(/"/g, '&quot;');
-      const preview = (a.value || '').substring(0,5) + ((a.value||'').length > 5 ? '…' : '');
+      const text = a.studentAnswer || a.value || '';
+      const val = text.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      const preview = text.substring(0,6) + (text.length > 6 ? '…' : '');
       return '<button class="btn-sm" '
         + 'data-sid="' + sid + '" data-sname="' + sname + '" data-qid="' + qid + '" data-val="' + val + '" '
         + 'onclick="handleWritingAnnotation(this)" '
-        + 'style="max-width:80px;overflow:hidden;text-overflow:ellipsis;">'
+        + 'style="max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" '
+        + 'title="Q' + qid + ': ' + text.substring(0,40) + '">'
         + (preview || '(empty)') + '</button>';
     }).join(' ') || '—';
 
