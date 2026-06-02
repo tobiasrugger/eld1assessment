@@ -806,7 +806,7 @@ function renderVocabWrite(q){
   });
   html += `</div></div>`;
   html += `<div class="text-input-wrap"><label>Your writing:</label>
-    <textarea id="written-response" placeholder="${q.placeholder}" rows="4" oninput="onWrittenInput()"></textarea></div>`;
+    <textarea id="written-response" placeholder="${q.placeholder}" rows="4"></textarea></div>`;
   if(q.recordingEnabled) html += renderRecordingUI(q.id);
   html += renderRubricPreview();
   html += `<button class="btn btn-primary" style="margin-top:.5rem;width:100%;" onclick="submitWritten(${q.id})">Submit & Get Feedback</button>`;
@@ -826,7 +826,7 @@ function renderEssay(q){
   });
   html += `</div></div>`;
   html += `<div class="text-input-wrap"><label>Your paragraph:</label>
-    <textarea id="written-response" placeholder="${q.placeholder}" rows="8" oninput="onWrittenInput()"></textarea></div>`;
+    <textarea id="written-response" placeholder="${q.placeholder}" rows="8"></textarea></div>`;
   html += renderRubricPreview();
   html += `<button class="btn btn-primary" style="margin-top:.5rem;width:100%;" onclick="submitWritten(${q.id})">Submit & Get Feedback</button>`;
   return html;
@@ -1239,13 +1239,15 @@ async function generateStudentReport() {
       answerHTML = `<div style="font-size:.85rem;color:#5F5E5A;">Selected image ${ans.value+1} — ${ans.correct ? '<span style="color:#3B6D11;font-weight:700;">✓ Correct</span>' : '<span style="color:#A32D2D;font-weight:700;">✗ Incorrect</span>'}</div>`;
     } else {
       // written
-      answerHTML = `<div style="background:#f9f9f7;border-radius:6px;padding:8px;font-size:.88rem;color:#2C2C2A;margin-bottom:4px;">${(ans.value||'').replace(/</g,'&lt;')}</div>`;
+      answerHTML = '<div id="wfb-' + q.id + '">'
+        + '<div style="background:#f9f9f7;border-radius:6px;padding:8px;font-size:.88rem;color:#2C2C2A;margin-bottom:4px;">' + (ans.value||'').replace(/</g,'&lt;') + '</div>';
       if (ans.score !== null && ans.score !== undefined) {
-        answerHTML += `<div style="font-size:.8rem;color:#085041;font-weight:700;">Rubric avg: ${ans.score}/4</div>`;
+        answerHTML += '<div style="font-size:.8rem;color:#085041;font-weight:700;">Rubric avg: ' + ans.score + '/4</div>';
       }
       if (ans.recordingUrl) {
-        answerHTML += `<div style="margin-top:4px;"><a href="${ans.recordingUrl}" target="_blank" style="font-size:.8rem;background:#E1F5EE;border:1px solid #9FE1CB;border-radius:6px;padding:2px 8px;color:#085041;text-decoration:none;font-weight:700;">🎙 Listen to recording</a></div>`;
+        answerHTML += '<div id="rfb-' + q.id + '" style="margin-top:4px;"><a href="' + ans.recordingUrl + '" target="_blank" style="font-size:.8rem;background:#E1F5EE;border:1px solid #9FE1CB;border-radius:6px;padding:2px 8px;color:#085041;text-decoration:none;font-weight:700;">🎙 Listen to recording</a></div>';
       }
+      answerHTML += '</div>';
     }
 
     // Scene/photo for prep-sentence
@@ -1266,34 +1268,65 @@ async function generateStudentReport() {
     </div>`;
   });
 
-  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ELD Report — ${name}</title>
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
-</head><body style="font-family:'Nunito',sans-serif;background:#f7f8fa;margin:0;padding:0;">
-<div style="background:linear-gradient(135deg,#085041,#1D9E75);padding:1.5rem;color:white;text-align:center;">
-  <h1 style="margin:0;font-size:1.4rem;">🌟 ELD Assessment Report</h1>
-  <p style="margin:.25rem 0 0;opacity:.85;">${name} · Period ${period} · ${timestamp}</p>
-</div>
-<div style="max-width:600px;margin:1.5rem auto;padding:0 1rem;">
-  <div style="background:white;border-radius:12px;padding:1.25rem;box-shadow:0 2px 12px rgba(0,0,0,.08);margin-bottom:1.5rem;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center;">
-    <div style="background:#E1F5EE;border-radius:8px;padding:.75rem;">
-      <div style="font-size:10px;font-weight:800;color:#1D9E75;text-transform:uppercase;margin-bottom:4px;">Tier 1</div>
-      <div style="font-size:1.6rem;font-weight:800;color:#085041;">${tierScore(t1)}</div>
-    </div>
-    <div style="background:#EDE9FE;border-radius:8px;padding:.75rem;">
-      <div style="font-size:10px;font-weight:800;color:#7c3aed;text-transform:uppercase;margin-bottom:4px;">Tier 2</div>
-      <div style="font-size:1.6rem;font-weight:800;color:#4c1d95;">${tierScore(t2)}</div>
-    </div>
-    <div style="background:#FFEDD5;border-radius:8px;padding:.75rem;">
-      <div style="font-size:10px;font-weight:800;color:#c2410c;text-transform:uppercase;margin-bottom:4px;">Answered</div>
-      <div style="font-size:1.6rem;font-weight:800;color:#7c2d12;">${Object.keys(answers).length}/${q_data.length}</div>
-    </div>
-  </div>
-  ${rows}
-</div></body></html>`;
+  const html = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">'
+    + '<meta name="viewport" content="width=device-width,initial-scale=1">'
+    + '<title>ELD Report — ' + name + '</title>'
+    + '<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">'
+    + '</head><body style="font-family:\'Nunito\',sans-serif;background:#f7f8fa;margin:0;padding:0;">'
+    + '<div style="background:linear-gradient(135deg,#085041,#1D9E75);padding:1.5rem;color:white;text-align:center;">'
+    + '<h1 style="margin:0;font-size:1.4rem;">🌟 ELD Assessment Report</h1>'
+    + '<p style="margin:.25rem 0 0;opacity:.85;">' + name + ' · Period ' + period + ' · ' + timestamp + '</p>'
+    + '</div>'
+    + '<div style="max-width:600px;margin:1.5rem auto;padding:0 1rem;">'
+    + '<div style="background:white;border-radius:12px;padding:1.25rem;box-shadow:0 2px 12px rgba(0,0,0,.08);margin-bottom:1.5rem;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center;">'
+    + '<div style="background:#E1F5EE;border-radius:8px;padding:.75rem;"><div style="font-size:10px;font-weight:800;color:#1D9E75;text-transform:uppercase;margin-bottom:4px;">Tier 1</div><div style="font-size:1.6rem;font-weight:800;color:#085041;">' + tierScore(t1) + '</div></div>'
+    + '<div style="background:#EDE9FE;border-radius:8px;padding:.75rem;"><div style="font-size:10px;font-weight:800;color:#7c3aed;text-transform:uppercase;margin-bottom:4px;">Tier 2</div><div style="font-size:1.6rem;font-weight:800;color:#4c1d95;">' + tierScore(t2) + '</div></div>'
+    + '<div style="background:#FFEDD5;border-radius:8px;padding:.75rem;"><div style="font-size:10px;font-weight:800;color:#c2410c;text-transform:uppercase;margin-bottom:4px;">Answered</div><div style="font-size:1.6rem;font-weight:800;color:#7c2d12;">' + Object.keys(answers).length + '/' + q_data.length + '</div></div>'
+    + '</div>'
+    + rows
+    + '</div>'
+    + '<script>'
+    + 'const SUPA_URL="https://lhmwtfyceilgndpygivj.supabase.co";'
+    + 'const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxobXd0ZnljZWlsZ25kcHlnaXZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxMzk5MDIsImV4cCI6MjA5MTcxNTkwMn0.0uIXyctHMfTN4doWYn2JJ260swD5b-t0T-oDMSIPtBU";'
+    + 'const SID="' + (state.submissionId||'') + '";'
+    + 'async function loadFeedback(){'
+    + '  if(!SID) return;'
+    + '  try {'
+    + '    const [wRes,rRes]=await Promise.all(['
+    + '      fetch(SUPA_URL+"/rest/v1/writing_feedback?submission_id=eq."+SID+"&select=*",{headers:{"apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY}}),'
+    + '      fetch(SUPA_URL+"/rest/v1/recording_feedback?submission_id=eq."+SID+"&select=*",{headers:{"apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY}})'
+    + '    ]);'
+    + '    const wFb=await wRes.json();'
+    + '    const rFb=await rRes.json();'
+    + '    wFb.forEach(function(fb){'
+    + '      const el=document.getElementById("wfb-"+fb.question_id);'
+    + '      if(!el) return;'
+    + '      let html="<div style=\'margin-top:10px;border-top:1px solid #F1EFE8;padding-top:10px;\'>";'
+    + '      html+="<div style=\'font-size:10px;font-weight:800;color:#085041;text-transform:uppercase;margin-bottom:6px;\'>Teacher Feedback</div>";'
+    + '      if(fb.annotated_html) html+="<div style=\'border:1px solid #D3D1C7;border-radius:8px;padding:8px;font-size:.88rem;line-height:1.8;margin-bottom:6px;\'>"+fb.annotated_html+"</div>";'
+    + '      const scores=[["Grammar",fb.grammar_score],["Vocabulary",fb.vocabulary_score],["Details",fb.details_score],["Punctuation",fb.punctuation_score]];'
+    + '      const scoreHtml=scores.filter(function(s){return s[1];}).map(function(s){return "<span style=\'font-size:11px;font-weight:700;background:#E1F5EE;color:#085041;border-radius:12px;padding:2px 8px;margin:2px;\'>"+s[0]+": "+s[1]+"/4</span>";}).join("");'
+    + '      if(scoreHtml) html+="<div style=\'margin-bottom:6px;\'>"+scoreHtml+"</div>";'
+    + '      if(fb.notes) html+="<div style=\'font-size:.85rem;color:#5F5E5A;font-style:italic;\'>"+fb.notes+"</div>";'
+    + '      html+="</div>";'
+    + '      el.innerHTML+=html;'
+    + '    });'
+    + '    rFb.forEach(function(fb){'
+    + '      const el=document.getElementById("rfb-"+fb.question_id);'
+    + '      if(!el) return;'
+    + '      let html="<div style=\'margin-top:6px;font-size:.82rem;\'>";'
+    + '      if(fb.loudness) html+="<span style=\'background:#DBEAFE;color:#1d4ed8;border-radius:12px;padding:2px 8px;margin:2px;font-weight:700;\'>"+fb.loudness+"</span>";'
+    + '      if(fb.pronunciation) html+="<span style=\'background:#EDE9FE;color:#7c3aed;border-radius:12px;padding:2px 8px;margin:2px;font-weight:700;\'>"+fb.pronunciation+"</span>";'
+    + '      if(fb.notes) html+="<div style=\'margin-top:4px;color:#5F5E5A;font-style:italic;\'>"+fb.notes+"</div>";'
+    + '      html+="</div>";'
+    + '      el.innerHTML+=html;'
+    + '    });'
+    + '  } catch(e){ console.warn("Could not load feedback",e); }'
+    + '}'
+    + 'loadFeedback();'
+    + '<\/script>'
+    + '</body></html>';
   return html;
-}
 
 async function uploadStudentReport(htmlContent) {
   const name = (state.studentName || 'student').replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_]/g,'');
@@ -1346,6 +1379,10 @@ async function submitToDashboard(reportUrl){
     const text = await res.text();
     console.log('Submit status:', res.status, res.url);
     console.log('Submit response:', text);
+    try {
+      const data = JSON.parse(text);
+      if (data.submissionId) state.submissionId = data.submissionId;
+    } catch(e) {}
   } catch(e){
     console.warn('Dashboard submit failed:', e);
     // Fallback: try GET with encoded data (bypasses CORS preflight)
@@ -1451,7 +1488,7 @@ updateProgress();
           <button onclick="addFB('${s.submissionId}','${(s.studentName||'').replace(/'/g,"\\'")}');loadDB()" style="font-size:12px;background:#E1F5EE;border:1px solid #9FE1CB;border-radius:6px;padding:3px 10px;cursor:pointer;font-family:'Nunito',sans-serif;font-weight:700;color:#085041;">Add Feedback</button>
         </td>
         <td style="padding:8px 10px;border-bottom:1px solid #F1EFE8;">
-          ${s.reportUrl ? `<button onclick="viewReport('${s.reportUrl}')" style="font-size:12px;background:#085041;color:white;border-radius:6px;padding:3px 10px;border:none;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;">📄 Report</button>` : '<span style="color:#aaa;font-size:11px;">—</span>'}
+          ${s.reportUrl ? '<button onclick="viewReport(\'' + s.reportUrl + '\')" style="font-size:12px;background:#085041;color:white;border-radius:6px;padding:3px 10px;border:none;font-weight:700;cursor:pointer;font-family:\'Nunito\',sans-serif;">📄 Report</button>' : '<span style="color:#aaa;font-size:11px;">—</span>'}
         </td></tr>`).join('');
       document.getElementById('db-table-wrap').innerHTML=`
         <table style="width:100%;border-collapse:collapse;font-size:.9rem;font-family:'Nunito',sans-serif;">
