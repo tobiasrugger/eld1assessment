@@ -184,9 +184,9 @@ function renderList() {
   }
   document.getElementById('list-body').innerHTML = allSubs.map(s => {
     const recs = (s.answers||[]).filter(a => a.recordingUrl)
-      .map(a => `<a href="${a.recordingUrl}" target="_blank" class="btn-sm" style="margin:1px;">Q${a.questionId}</a>`).join('') || '—';
+      .map(a => '<a href="' + a.recordingUrl + '" target="_blank" class="btn-sm" style="margin:1px;">🎙 Q' + a.questionId + '</a>').join('') || '—';
     const report = s.reportUrl
-      ? `<a href="${s.reportUrl}" target="_blank" class="btn-sm btn-report">📄</a>` : '—';
+      ? '<button onclick="viewReport(\'' + s.reportUrl + '\')" class="btn-sm btn-report">📄 Report</button>' : '—';
     const date = s.timestamp ? new Date(s.timestamp).toLocaleDateString() : '—';
     return `<tr>
       <td><strong>${s.studentName||'—'}</strong></td>
@@ -274,6 +274,15 @@ async function addFeedback(submissionId, studentName) {
     alert('Saved!');
     loadData();
   } catch(e) { alert('Error saving.'); }
+}
+
+async function viewReport(url) {
+  try {
+    const res = await fetch(url);
+    const html = await res.text();
+    const blob = new Blob([html], {type: 'text/html'});
+    window.open(URL.createObjectURL(blob), '_blank');
+  } catch(e) { alert('Could not load report.'); }
 }
 
 document.addEventListener('keydown', e => {
