@@ -185,17 +185,23 @@ function renderList() {
     const sid = s.submissionId || '';
     const sname = (s.studentName || '').replace(/\\/g,'').replace(/'/g,'');
 
-    // Recordings
-    const recHtml = (s.answers||[]).filter(function(a){return a.recordingUrl;}).map(function(a) {
-      const qid = a.questionId || '';
-      const rurl = a.recordingUrl || '';
-      return '<span style="white-space:nowrap;display:inline-flex;gap:3px;margin:2px;">'
-        + '<a href="' + rurl + '" target="_blank" class="btn-sm">🎙 Q' + qid + '</a>'
-        + '<button class="btn-sm" style="background:#534AB7;color:white;border-color:#534AB7;" '
-        + 'data-sid="' + sid + '" data-sname="' + sname + '" data-qid="' + qid + '" data-rurl="' + rurl + '" '
-        + 'onclick="handleRecRubric(this)">Rubric</button>'
-        + '</span>';
-    }).join('') || '—';
+    // Recordings — only show answers that have a real URL
+    const recAnswers = (s.answers||[]).filter(function(a){
+      return a.recordingUrl && a.recordingUrl.startsWith('http');
+    });
+    const recHtml = recAnswers.length === 0 ? '—' :
+      '<div style="display:flex;flex-wrap:wrap;gap:4px;max-width:200px;">' +
+      recAnswers.map(function(a) {
+        const qid = a.questionId || '';
+        const rurl = a.recordingUrl;
+        return '<span style="display:inline-flex;gap:2px;align-items:center;">'
+          + '<a href="' + rurl + '" target="_blank" class="btn-sm" style="padding:2px 6px;">🎙Q' + qid + '</a>'
+          + '<button class="btn-sm" style="background:#534AB7;color:white;border-color:#534AB7;padding:2px 6px;" '
+          + 'data-sid="' + sid + '" data-sname="' + sname + '" data-qid="' + qid + '" data-rurl="' + rurl + '" '
+          + 'onclick="handleRecRubric(this)">R</button>'
+          + '</span>';
+      }).join('') +
+      '</div>';
 
     // Writing — tier 3 questions
     const writingHtml = (s.answers||[]).filter(function(a){
