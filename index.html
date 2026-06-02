@@ -204,6 +204,7 @@ textarea{min-height:100px;}
   <div id="feedback-area"></div>
   <div class="nav-row" id="nav-row">
     <button class="btn btn-secondary" id="btn-back" onclick="goBack()">← Back</button>
+    <button class="btn btn-primary" id="btn-submit" onclick="submitAnswer()" disabled style="display:none;">Submit ✓</button>
     <button class="btn btn-primary" id="btn-next" onclick="goNext()" disabled>Next →</button>
   </div>
 </div>
@@ -708,6 +709,13 @@ function renderQuestion(q){
   const card = document.getElementById('question-card');
   document.getElementById('feedback-area').innerHTML = '';
   document.getElementById('btn-next').disabled = true;
+  document.getElementById('btn-submit').disabled = true;
+  document.getElementById('btn-submit').style.display = 'none';
+  pendingAnswer = null;
+  // Stop any active recording and reset state
+  if (state.recording) stopRecording();
+  state.audioBlob = null;
+  clearInterval(state.timerInterval);
 
   let html = `<div class="card-tier">Tier ${q.tier} · ${q.type==='vocab-mc'?'Vocabulary':''}${q.type==='native-match'?'Word Match':''}${q.type==='picture-match'?'Picture Match':''}${q.type==='verb-agree'?'Grammar':''}${q.type==='prep-sentence'?'Sentence':''}${q.type==='vocab-write'?'Writing':''}${q.type==='essay'?'Essay':''}</div>`;
   html += `<div class="unit-badge">${q.unit}: ${q.unitName}</div>`;
@@ -801,7 +809,7 @@ function renderVocabWrite(q){
     <textarea id="written-response" placeholder="${q.placeholder}" rows="4" oninput="onWrittenInput()"></textarea></div>`;
   if(q.recordingEnabled) html += renderRecordingUI(q.id);
   html += renderRubricPreview();
-  html += `<button class="btn btn-primary" style="margin-top:.5rem;width:100%;" onclick="submitWritten(${q.id})">Submit Answer</button>`;
+  html += `<button class="btn btn-primary" style="margin-top:.5rem;width:100%;" onclick="submitWritten(${q.id})">Submit & Get Feedback</button>`;
   return html;
 }
 
@@ -820,7 +828,7 @@ function renderEssay(q){
   html += `<div class="text-input-wrap"><label>Your paragraph:</label>
     <textarea id="written-response" placeholder="${q.placeholder}" rows="8" oninput="onWrittenInput()"></textarea></div>`;
   html += renderRubricPreview();
-  html += `<button class="btn btn-primary" style="margin-top:.5rem;width:100%;" onclick="submitWritten(${q.id})">Submit Answer</button>`;
+  html += `<button class="btn btn-primary" style="margin-top:.5rem;width:100%;" onclick="submitWritten(${q.id})">Submit & Get Feedback</button>`;
   return html;
 }
 
@@ -850,46 +858,90 @@ function renderRubricPreview(){
 }
 
 // ── INTERACTIONS ──────────────────────────────────────────
+// Track pending selection before submit
+let pendingAnswer = null;
+
 function selectMC(qid, idx, correct){
-  const q = QUESTIONS.find(q=>q.id===qid);
-  document.querySelectorAll('.opt').forEach(o=>{o.disabled=true; o.classList.remove('selected');});
+  // Just highlight selection — don't reveal correct/incorrect yet
+  document.querySelectorAll('.opt').forEach(o=>{ o.classList.remove('selected'); });
   const sel = document.getElementById('opt-'+idx);
   sel.classList.add('selected');
-  const isCorrect = idx===correct;
-  sel.classList.add(isCorrect?'correct':'incorrect');
-  if(!isCorrect) document.getElementById('opt-'+correct).classList.add('correct');
-  state.answers[qid] = {value:idx, correct:isCorrect, score:isCorrect?1:0};
-  document.getElementById('btn-next').disabled = false;
-  if(MODE==='formative'){
-    const ctx = q.type==='verb-agree'
-      ? `Sentence: "${q.sentence}" | Correct: "${q.options[correct]}" | Student chose: "${q.options[idx]}". Concept: ${q.explanation||'verb agreement'}.`
-      : `Question: "${q.question||q.prompt}" | Correct: "${q.options[correct]}" | Student chose: "${q.options[idx]}".`;
-    getAIFeedback(isCorrect, ctx, qid);
-  }
+  pendingAnswer = {qid, idx, correct, type:'mc'};
+  // Show Submit, hide Next
+  document.getElementById('btn-submit').style.display = '';
+  document.getElementById('btn-submit').disabled = false;
+  document.getElementById('btn-next').disabled = true;
 }
 
 function selectPicture(qid, idx){
   const q = QUESTIONS.find(q=>q.id===qid);
-  document.querySelectorAll('.img-opt').forEach(o=>o.disabled=true);
+  // Just highlight selection
+  document.querySelectorAll('.img-opt').forEach(o=>{ o.classList.remove('selected'); });
   const sel = document.getElementById('imgopt-'+idx);
   sel.classList.add('selected');
-  const isCorrect = q.images[idx].correct;
-  sel.classList.add(isCorrect?'correct':'incorrect');
-  if(!isCorrect){
-    const ci = q.images.findIndex(img=>img.correct);
-    document.getElementById('imgopt-'+ci).classList.add('correct');
-  }
-  state.answers[qid] = {value:idx, correct:isCorrect, score:isCorrect?1:0};
-  document.getElementById('btn-next').disabled = false;
-  if(MODE==='formative'){
-    const ctx = `Picture match: student chose "${q.images[idx].label}", correct was "${q.images.find(i=>i.correct).label}". Question: ${q.question}`;
-    getAIFeedback(isCorrect, ctx, qid);
-  }
+  pendingAnswer = {qid, idx, correct: q.images[idx].correct, type:'picture', q};
+  // Show Submit, hide Next
+  document.getElementById('btn-submit').style.display = '';
+  document.getElementById('btn-submit').disabled = false;
+  document.getElementById('btn-next').disabled = true;
 }
 
-function onWrittenInput(){
-  const ta = document.getElementById('written-response');
-  // enable submit button is handled by the dedicated submit button
+function submitAnswer(){
+  if (!pendingAnswer) return;
+  const {qid, idx, correct, type, q} = pendingAnswer;
+  pendingAnswer = null;
+
+  // Disable Submit, enable Next
+  document.getElementById('btn-submit').disabled = true;
+  document.getElementById('btn-submit').style.display = 'none';
+  document.getElementById('btn-next').disabled = false;
+
+  if (type === 'mc') {
+    const qObj = QUESTIONS.find(q=>q.id===qid);
+    // Lock options
+    document.querySelectorAll('.opt').forEach(o=>o.disabled=true);
+    // Reveal correct/incorrect
+    const sel = document.getElementById('opt-'+idx);
+    const isCorrect = idx===correct;
+    sel.classList.remove('selected');
+    sel.classList.add(isCorrect?'correct':'incorrect');
+    if(!isCorrect) document.getElementById('opt-'+correct).classList.add('correct');
+    state.answers[qid] = {value:idx, correct:isCorrect, score:isCorrect?1:0};
+    if(MODE==='formative'){
+      const ctx = qObj.type==='verb-agree'
+        ? `Sentence: "${qObj.sentence}" | Correct: "${qObj.options[correct]}" | Student chose: "${qObj.options[idx]}". Concept: ${qObj.explanation||'verb agreement'}.`
+        : `Question: "${qObj.question||qObj.prompt}" | Correct: "${qObj.options[correct]}" | Student chose: "${qObj.options[idx]}".`;
+      getAIFeedback(isCorrect, ctx, qid);
+    } else {
+      showSimpleFeedback(isCorrect);
+    }
+  } else if (type === 'picture') {
+    // Lock options
+    document.querySelectorAll('.img-opt').forEach(o=>o.disabled=true);
+    const isCorrect = correct;
+    const sel = document.getElementById('imgopt-'+idx);
+    sel.classList.remove('selected');
+    sel.classList.add(isCorrect?'correct':'incorrect');
+    if(!isCorrect){
+      const ci = q.images.findIndex(img=>img.correct);
+      document.getElementById('imgopt-'+ci).classList.add('correct');
+    }
+    state.answers[qid] = {value:idx, correct:isCorrect, score:isCorrect?1:0};
+    if(MODE==='formative'){
+      const ctx = `Picture match: student chose "${q.images[idx].label}", correct was "${q.images.find(i=>i.correct).label}". Question: ${q.question}`;
+      getAIFeedback(isCorrect, ctx, qid);
+    } else {
+      showSimpleFeedback(isCorrect);
+    }
+  }
+  updateProgress();
+}
+
+function showSimpleFeedback(isCorrect) {
+  document.getElementById('feedback-area').innerHTML =
+    `<div class="feedback-box ${isCorrect?'correct-fb':'incorrect-fb'}">
+      <div class="feedback-header ${isCorrect?'correct-fb':'incorrect-fb'}">${isCorrect?'✓ Correct!':'✗ Not quite — see the correct answer above.'}</div>
+    </div>`;
 }
 
 function insertWord(word, idx){
@@ -906,6 +958,12 @@ function insertWord(word, idx){
 }
 
 async function submitWritten(qid){
+  // Auto-stop recording if still in progress
+  if (state.recording) stopRecording();
+  // Small delay to let the onstop handler fire and set audioBlob
+  if (state.recording === false && state.mediaRecorder?.state === 'inactive') {
+    await new Promise(r => setTimeout(r, 150));
+  }
   const ta = document.getElementById('written-response');
   const value = ta ? ta.value.trim() : '';
   if(!value){ if(ta) ta.style.borderColor='var(--red)'; return; }
@@ -940,16 +998,8 @@ function showFeedbackLoading(){
 async function getAIFeedback(isCorrect, context, qid){
   showFeedbackLoading();
   const langName = document.getElementById('lang-select').options[document.getElementById('lang-select').selectedIndex].text;
-  const prompt = `You are a warm, encouraging ELD teacher giving real-time formative feedback to a multilingual student (K-12). The student ${isCorrect?'correctly answered':'incorrectly answered'} a multiple choice question.
-
-Context: ${context}
-
-Give feedback in this format:
-1. One sentence in English: affirm correct OR gently correct with explanation (friendly, age-appropriate, no shame)
-2. One sentence of instructional tip (what to remember)
-${state.lang!=='en'?`3. Translate your full feedback into ${langName} for the student's native language support.`:''}
-
-Keep it short (3-4 sentences total). Do not use bullet points. Be warm and encouraging.`;
+  const translateLine = state.lang!=='en' ? '3. Translate your full feedback into ' + langName + ' for the student native language support.' : '';
+  const prompt = 'You are a warm, encouraging ELD teacher giving real-time formative feedback to a multilingual student (K-12). The student ' + (isCorrect?'correctly answered':'incorrectly answered') + ' a multiple choice question.\n\nContext: ' + context + '\n\nGive feedback in this format:\n1. One sentence in English: affirm correct OR gently correct with explanation (friendly, age-appropriate, no shame)\n2. One sentence of instructional tip (what to remember)\n' + translateLine + '\n\nKeep it short (3-4 sentences total). Do not use bullet points. Be warm and encouraging.';
   try {
     const res = await fetch(CLAUDE_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:250,messages:[{role:'user',content:prompt}]})});
@@ -966,20 +1016,11 @@ async function getAIWrittenFeedback(qid, text){
   const q = QUESTIONS.find(q=>q.id===qid);
   const langName = document.getElementById('lang-select').options[document.getElementById('lang-select').selectedIndex].text;
   const rubricText = RUBRIC.criteria.map(c=>
-    `${c}: 1=${RUBRIC.descriptors[c][0]}, 2=${RUBRIC.descriptors[c][1]}, 3=${RUBRIC.descriptors[c][2]}, 4=${RUBRIC.descriptors[c][3]}`
+    c + ': 1=' + RUBRIC.descriptors[c][0] + ', 2=' + RUBRIC.descriptors[c][1] + ', 3=' + RUBRIC.descriptors[c][2] + ', 4=' + RUBRIC.descriptors[c][3]
   ).join('\n');
   const wbList = q.wordBank ? (Array.isArray(q.wordBank[0]) ? q.wordBank.map(w=>w.en||w) : q.wordBank).join(', ') : '';
-  const prompt = `You are a warm ELD teacher evaluating a multilingual student's written response.
-
-Prompt: "${q.question||q.prompt}"
-Word bank available: ${wbList}
-Student wrote: "${text}"
-
-Rubric (1-4 per criterion):
-${rubricText}
-
-Respond with VALID JSON only (no markdown):
-{"scores":{"Grammar":1,"Relevant Vocabulary":1,"Details":1,"Punctuation & Capitals":1},"strengths":"one sentence","suggestion":"one specific actionable improvement","nativeFeedback":"${state.lang!=='en'?`translate strengths and suggestion into ${langName}`:''}"}`;
+  const nativeInstruction = state.lang!=='en' ? 'translate strengths and suggestion into ' + langName : '';
+  const prompt = 'You are a warm ELD teacher evaluating a multilingual student written response.\n\nPrompt: "' + (q.question||q.prompt) + '"\nWord bank available: ' + wbList + '\nStudent wrote: "' + text + '"\n\nRubric (1-4 per criterion):\n' + rubricText + '\n\nRespond with VALID JSON only (no markdown):\n{"scores":{"Grammar":1,"Relevant Vocabulary":1,"Details":1,"Punctuation & Capitals":1},"strengths":"one sentence","suggestion":"one specific actionable improvement","nativeFeedback":"' + nativeInstruction + '"}';
   try {
     const res = await fetch(CLAUDE_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,messages:[{role:'user',content:prompt}]})});
@@ -992,8 +1033,8 @@ Respond with VALID JSON only (no markdown):
     state.answers[qid].score = avg;
   } catch(e){
     document.getElementById('feedback-area').innerHTML =
-      `<div class="feedback-box partial-fb"><div class="feedback-header partial-fb">Submitted</div>
-       <div class="feedback-text">Your response was saved. Your teacher will review it.</div></div>`;
+      '<div class="feedback-box partial-fb"><div class="feedback-header partial-fb">Submitted</div>'
+      + '<div class="feedback-text">Your response was saved. Your teacher will review it.</div></div>';
   }
 }
 
@@ -1003,12 +1044,13 @@ function showMCFeedback(isCorrect, text){
   const lines = text.split('\n').filter(l=>l.trim());
   const english = lines.slice(0,2).join(' ');
   const native = lines.slice(2).join(' ');
+  const nativeHTML = native ? '<div class="feedback-native">🌍 ' + native + '</div>' : '';
   document.getElementById('feedback-area').innerHTML =
-    `<div class="feedback-box ${cls}">
-      <div class="feedback-header ${cls}">${label}</div>
-      <div class="feedback-text">${english}</div>
-      ${native?`<div class="feedback-native">🌍 ${native}</div>`:''}
-    </div>`;
+    '<div class="feedback-box ' + cls + '">'
+    + '<div class="feedback-header ' + cls + '">' + label + '</div>'
+    + '<div class="feedback-text">' + english + '</div>'
+    + nativeHTML
+    + '</div>';
 }
 
 function showWrittenFeedback(fb){
@@ -1016,16 +1058,17 @@ function showWrittenFeedback(fb){
   const marksHTML = RUBRIC.criteria.map(c=>{
     const s = scores[c]||1;
     const color = s>=3?'green':s===2?'amber':'red';
-    return `<div class="rubric-mark"><div class="mark-dot ${color}"></div><span>${c}: ${s}/4 — ${RUBRIC.descriptors[c][s-1]}</span></div>`;
+    return '<div class="rubric-mark"><div class="mark-dot ' + color + '"></div><span>' + c + ': ' + s + '/4 — ' + RUBRIC.descriptors[c][s-1] + '</span></div>';
   }).join('');
+  const nativeHTML = fb.nativeFeedback ? '<div class="feedback-native">🌍 ' + fb.nativeFeedback + '</div>' : '';
   document.getElementById('feedback-area').innerHTML =
-    `<div class="feedback-box partial-fb">
-      <div class="feedback-header partial-fb">📋 Rubric Feedback</div>
-      <div class="rubric-marks">${marksHTML}</div>
-      <div class="feedback-text" style="margin-top:.75rem;"><strong>What you did well:</strong> ${fb.strengths||''}</div>
-      <div class="feedback-text" style="margin-top:.25rem;"><strong>To improve:</strong> ${fb.suggestion||''}</div>
-      ${fb.nativeFeedback?`<div class="feedback-native">🌍 ${fb.nativeFeedback}</div>`:''}
-    </div>`;
+    '<div class="feedback-box partial-fb">'
+    + '<div class="feedback-header partial-fb">📋 Rubric Feedback</div>'
+    + '<div class="rubric-marks">' + marksHTML + '</div>'
+    + '<div class="feedback-text" style="margin-top:.75rem;"><strong>What you did well:</strong> ' + (fb.strengths||'') + '</div>'
+    + '<div class="feedback-text" style="margin-top:.25rem;"><strong>To improve:</strong> ' + (fb.suggestion||'') + '</div>'
+    + nativeHTML
+    + '</div>';
 }
 
 // ── RECORDING ─────────────────────────────────────────────
@@ -1129,23 +1172,29 @@ async function finishAssessment(){
   document.getElementById('t2-score').textContent = tierScore(t2);
   document.getElementById('final-score').textContent = Object.keys(state.answers).length+'/'+QUESTIONS.length;
   const reportHTML = await generateStudentReport();
+  state.reportHTML = reportHTML; // store for view button
   const reportUrl = await uploadStudentReport(reportHTML);
   state.reportUrl = reportUrl;
   submitToDashboard(reportUrl);
   showScreen('complete');
 
   // Show report link on complete screen
-  if (reportUrl) {
-    setTimeout(()=>{
-      const el = document.getElementById('final-score');
-      if(el && el.parentNode) {
-        const link = document.createElement('div');
-        link.style.cssText = 'margin-top:1rem;';
-        link.innerHTML = `<a href="${reportUrl}" target="_blank" style="background:#1D9E75;color:white;padding:.7rem 1.5rem;border-radius:8px;text-decoration:none;font-weight:700;font-size:.9rem;">📄 View Full Report</a>`;
-        el.parentNode.insertBefore(link, el.nextSibling.nextSibling);
-      }
-    }, 500);
-  }
+  setTimeout(()=>{
+    const el = document.getElementById('final-score');
+    if(el && el.parentNode) {
+      const link = document.createElement('div');
+      link.style.cssText = 'margin-top:1rem;';
+      link.innerHTML = '<button onclick="openReport()" style="background:#1D9E75;color:white;padding:.7rem 1.5rem;border-radius:8px;border:none;font-weight:700;font-size:.9rem;cursor:pointer;font-family:var(--font);">📄 View Full Report</button>';
+      el.parentNode.insertBefore(link, el.nextSibling.nextSibling);
+    }
+  }, 500);
+}
+
+function openReport() {
+  if (!state.reportHTML) return;
+  const blob = new Blob([state.reportHTML], {type: 'text/html'});
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank');
 }
 
 async function generateStudentReport() {
@@ -1398,11 +1447,11 @@ updateProgress();
           ).join('') || '<span style="color:#aaa;font-size:11px;">none</span>'}
         </td>
         <td style="padding:8px 10px;border-bottom:1px solid #F1EFE8;">
-          ${s.feedback?`<span style="font-size:11px;color:#3B6D11;">✓ </span>`:''}
+          ${s.feedback ? '<span style="font-size:11px;color:#3B6D11;">✓ </span>' : ''}
           <button onclick="addFB('${s.submissionId}','${(s.studentName||'').replace(/'/g,"\\'")}');loadDB()" style="font-size:12px;background:#E1F5EE;border:1px solid #9FE1CB;border-radius:6px;padding:3px 10px;cursor:pointer;font-family:'Nunito',sans-serif;font-weight:700;color:#085041;">Add Feedback</button>
         </td>
         <td style="padding:8px 10px;border-bottom:1px solid #F1EFE8;">
-          ${s.reportUrl ? `<a href="${s.reportUrl}" target="_blank" style="font-size:12px;background:#085041;color:white;border-radius:6px;padding:3px 10px;text-decoration:none;font-weight:700;display:inline-block;">📄 Report</a>` : '<span style="color:#aaa;font-size:11px;">—</span>'}
+          ${s.reportUrl ? `<button onclick="viewReport('${s.reportUrl}')" style="font-size:12px;background:#085041;color:white;border-radius:6px;padding:3px 10px;border:none;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;">📄 Report</button>` : '<span style="color:#aaa;font-size:11px;">—</span>'}
         </td></tr>`).join('');
       document.getElementById('db-table-wrap').innerHTML=`
         <table style="width:100%;border-collapse:collapse;font-size:.9rem;font-family:'Nunito',sans-serif;">
@@ -1518,8 +1567,20 @@ updateProgress();
       window.addFB = function(id, name){
         const fb=prompt('Feedback for ' + name + ':');
         if(fb) fetch(APPS_SCRIPT_URL,
-          {method:'POST',body:JSON.stringify({action:'saveELDFeedback',password:'galileo2026',submissionId:id,studentName:name,feedback:fb})})
-          .then(()=>alert('Saved!'));
+          {method:'POST',redirect:'follow',body:JSON.stringify({action:'saveELDFeedback',password:'galileo2026',submissionId:id,studentName:name,feedback:fb})})
+          .then(()=>{ alert('Saved!'); loadDB(); });
+      };
+
+      window.viewReport = async function(url) {
+        try {
+          const res = await fetch(url);
+          const html = await res.text();
+          const blob = new Blob([html], {type: 'text/html'});
+          const blobUrl = URL.createObjectURL(blob);
+          window.open(blobUrl, '_blank');
+        } catch(e) {
+          alert('Could not load report. Try again.');
+        }
       };
     }
   }
