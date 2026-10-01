@@ -172,6 +172,9 @@ textarea{min-height:100px;}
         <option value="bn">বাংলা (Bengali)</option>
         <option value="so">Soomaali (Somali)</option>
         <option value="ne">नेपाली (Nepali)</option>
+        <option value="ur">اردو (Urdu)</option>
+        <option value="fr">Français (French)</option>
+        <option value="th">ไทย (Thai)</option>
       </select>
     </div>
     <div class="student-field" style="margin-top:1rem;">
@@ -363,13 +366,13 @@ const QUESTIONS = [
   // ══ UNIT 1: WELCOME TO SCHOOL — Tier 1 ══
   {id:1,tier:1,unit:'Unit 1',unitName:'Welcome to School',type:'vocab-mc',
    question:'What is a "classroom"?',
-   nativeHints:{es:'sala de clases',zh:'教室',vi:'phòng học',tl:'silid-aralan',ko:'교실',ar:'فصل دراسي',hi:'कक्षा',pt:'sala de aula',ru:'класс',ja:'教室',bn:'শ্রেণীকক্ষ',so:'fasalka',ne:'कक्षाकोठा'},
+   nativeHints:{es:'sala de clases',zh:'教室',vi:'phòng học',tl:'silid-aralan',ko:'교실',ar:'فصل دراسي',hi:'कक्षा',pt:'sala de aula',ru:'класс',ja:'教室',bn:'শ্রেণীকক্ষ',so:'fasalka',ne:'कक्षाकोठा',ur:'کمرہ جماعت',fr:'la salle de classe',th:'ห้องเรียน'},
    options:['A room in a school where students learn','A type of food','A place to sleep','A kind of game'],
    correct:0},
 
   {id:2,tier:1,unit:'Unit 1',unitName:'Welcome to School',type:'vocab-mc',
    question:'Which word means the person who teaches you at school?',
-   nativeHints:{es:'maestro/a',zh:'老师',vi:'giáo viên',tl:'guro',ko:'선생님',ar:'معلم',hi:'शिक्षक',pt:'professor/a',ru:'учитель',ja:'先生',bn:'শিক্ষক',so:'macalin',ne:'शिक्षक'},
+   nativeHints:{es:'maestro/a',zh:'老师',vi:'giáo viên',tl:'guro',ko:'선생님',ar:'معلم',hi:'शिक्षक',pt:'professor/a',ru:'учитель',ja:'先生',bn:'শিক্ষক',so:'macalin',ne:'शिक्षक',ur:'استاد',fr:'l\'enseignant(e)',th:'ครู'},
    options:['student','principal','teacher','librarian'],
    correct:2},
 
@@ -408,20 +411,20 @@ const QUESTIONS = [
   // ══ UNIT 2: ALL ABOUT ME — Tier 1 ══
   {id:7,tier:1,unit:'Unit 2',unitName:'All About Me',type:'vocab-mc',
    question:'What does "family" mean?',
-   nativeHints:{es:'familia',zh:'家庭',vi:'gia đình',tl:'pamilya',ko:'가족',ar:'عائلة',hi:'परिवार',pt:'família',ru:'семья',ja:'家族',bn:'পরিবার',so:'qoyska',ne:'परिवार'},
+   nativeHints:{es:'familia',zh:'家庭',vi:'gia đình',tl:'pamilya',ko:'가족',ar:'عائلة',hi:'परिवार',pt:'família',ru:'семья',ja:'家族',bn:'পরিবার',so:'qoyska',ne:'परिवार',ur:'خاندان',fr:'la famille',th:'ครอบครัว'},
    options:['A group of people who are related to each other','A type of school subject','A kind of clothing','A place to buy food'],
    correct:0},
 
   {id:8,tier:1,unit:'Unit 2',unitName:'All About Me',type:'native-match',
    question:'Which English word matches the meaning?',
-   nativeWord:{es:'el cuerpo',zh:'身体',vi:'cơ thể',tl:'katawan',ko:'몸',ar:'الجسم',hi:'शरीर',pt:'corpo',ru:'тело',ja:'体',bn:'শরীর',so:'jirka',ne:'शरीर'},
+   nativeWord:{es:'el cuerpo',zh:'身体',vi:'cơ thể',tl:'katawan',ko:'몸',ar:'الجسم',hi:'शरीर',pt:'corpo',ru:'тело',ja:'体',bn:'শরীর',so:'jirka',ne:'शरीर',ur:'جسم',fr:'le corps',th:'ร่างกาย'},
    fallback:'body (all the parts of a person — head, arms, legs)',
    options:['face','body','heart','hand'],
    correct:1},
 
   {id:9,tier:1,unit:'Unit 2',unitName:'All About Me',type:'vocab-mc',
    question:'Which word describes how you feel when something good happens?',
-   nativeHints:{es:'feliz/contento',zh:'快乐',vi:'vui vẻ',tl:'masaya',ko:'행복한',ar:'سعيد',hi:'खुश',pt:'feliz',ru:'счастливый',ja:'嬉しい',bn:'খুশি',so:'farxad',ne:'खुसी'},
+   nativeHints:{es:'feliz/contento',zh:'快乐',vi:'vui vẻ',tl:'masaya',ko:'행복한',ar:'سعيد',hi:'खुश',pt:'feliz',ru:'счастливый',ja:'嬉しい',bn:'খুশি',so:'farxad',ne:'खुसी',ur:'خوش',fr:'heureux / content',th:'มีความสุข'},
    options:['angry','sad','happy','scared'],
    correct:2},
 
@@ -451,7 +454,7 @@ const QUESTIONS = [
   // ══ UNIT 3: MY COMMUNITY — Tier 1 ══
   {id:13,tier:1,unit:'Unit 3',unitName:'My Community',type:'vocab-mc',
    question:'What is a "neighborhood"?',
-   nativeHints:{es:'vecindario',zh:'社区',vi:'khu phố',tl:'kapitbahayan',ko:'동네',ar:'حي',hi:'मोहल्ला',pt:'bairro',ru:'район',ja:'近所',bn:'পাড়া',so:'xaafadda',ne:'छिमेक'},
+   nativeHints:{es:'vecindario',zh:'社区',vi:'khu phố',tl:'kapitbahayan',ko:'동네',ar:'حي',hi:'मोहल्ला',pt:'bairro',ru:'район',ja:'近所',bn:'পাড়া',so:'xaafadda',ne:'छिमेक',ur:'محلہ',fr:'le quartier',th:'ย่าน / ละแวกบ้าน'},
    options:['The area around where you live with houses and streets','A type of school','A sport you play','A kind of food'],
    correct:0},
 
@@ -466,7 +469,7 @@ const QUESTIONS = [
 
   {id:15,tier:1,unit:'Unit 3',unitName:'My Community',type:'native-match',
    question:'Which English word matches the meaning?',
-   nativeWord:{es:'la tienda',zh:'商店',vi:'cửa hàng',tl:'tindahan',ko:'가게',ar:'متجر',hi:'दुकान',pt:'loja',ru:'магазин',ja:'店',bn:'দোকান',so:'dukaan',ne:'पसल'},
+   nativeWord:{es:'la tienda',zh:'商店',vi:'cửa hàng',tl:'tindahan',ko:'가게',ar:'متجر',hi:'दुकान',pt:'loja',ru:'магазин',ja:'店',bn:'দোকান',so:'dukaan',ne:'पसल',ur:'دکان',fr:'le magasin',th:'ร้านค้า'},
    fallback:'store (a place where you buy things)',
    options:['park','store','library','hospital'],
    correct:1},
@@ -490,7 +493,7 @@ const QUESTIONS = [
   // ══ UNIT 4: AROUND THE WORLD — Tier 1 ══
   {id:18,tier:1,unit:'Unit 4',unitName:'Around the World',type:'vocab-mc',
    question:'What is a "country"?',
-   nativeHints:{es:'país',zh:'国家',vi:'đất nước',tl:'bansa',ko:'나라',ar:'دولة',hi:'देश',pt:'país',ru:'страна',ja:'国',bn:'দেশ',so:'dal',ne:'देश'},
+   nativeHints:{es:'país',zh:'国家',vi:'đất nước',tl:'bansa',ko:'나라',ar:'دولة',hi:'देश',pt:'país',ru:'страна',ja:'国',bn:'দেশ',so:'dal',ne:'देश',ur:'ملک',fr:'le pays',th:'ประเทศ'},
    options:['A large area of land with its own government and people','A small river','A type of food','A kind of weather'],
    correct:0},
 
@@ -529,13 +532,13 @@ const QUESTIONS = [
   // ══ UNIT 5: WHAT IN THE WORLD? — Tier 1 ══
   {id:23,tier:1,unit:'Unit 5',unitName:'What in the World?',type:'vocab-mc',
    question:'What is an "ecosystem"?',
-   nativeHints:{es:'ecosistema',zh:'生态系统',vi:'hệ sinh thái',tl:'ekosistema',ko:'생태계',ar:'نظام بيئي',hi:'पारिस्थितिकी तंत्र',pt:'ecossistema',ru:'экосистема',ja:'生態系',bn:'বাস্তুতন্ত্র',so:'nidaamka deegaanka',ne:'पारिस्थितिक तन्त्र'},
+   nativeHints:{es:'ecosistema',zh:'生态系统',vi:'hệ sinh thái',tl:'ekosistema',ko:'생태계',ar:'نظام بيئي',hi:'पारिस्थितिकी तंत्र',pt:'ecossistema',ru:'экосистема',ja:'生態系',bn:'বাস্তুতন্ত্র',so:'nidaamka deegaanka',ne:'पारिस्थितिक तन्त्र',ur:'ماحولیاتی نظام',fr:'l\'écosystème',th:'ระบบนิเวศ'},
    options:['All the living things and their environment in one place','A type of weather','A kind of machine','A large city'],
    correct:0},
 
   {id:24,tier:1,unit:'Unit 5',unitName:'What in the World?',type:'native-match',
    question:'Which English word matches the meaning?',
-   nativeWord:{es:'la lluvia',zh:'雨',vi:'mưa',tl:'ulan',ko:'비',ar:'المطر',hi:'बारिश',pt:'chuva',ru:'дождь',ja:'雨',bn:'বৃষ্টি',so:'roobka',ne:'पानी'},
+   nativeWord:{es:'la lluvia',zh:'雨',vi:'mưa',tl:'ulan',ko:'비',ar:'المطر',hi:'बारिश',pt:'chuva',ru:'дождь',ja:'雨',bn:'বৃষ্টি',so:'roobka',ne:'पानी',ur:'بارش',fr:'la pluie',th:'ฝน'},
    fallback:'rain (water that falls from clouds in the sky)',
    options:['snow','wind','rain','cloud'],
    correct:2},
@@ -559,13 +562,13 @@ const QUESTIONS = [
   // ══ UNIT 6: OUR CULTURES — Tier 1 ══
   {id:27,tier:1,unit:'Unit 6',unitName:'Our Cultures',type:'vocab-mc',
    question:'What does "culture" mean?',
-   nativeHints:{es:'cultura',zh:'文化',vi:'văn hóa',tl:'kultura',ko:'문화',ar:'ثقافة',hi:'संस्कृति',pt:'cultura',ru:'культура',ja:'文化',bn:'সংস্কৃতি',so:'dhaqanka',ne:'संस्कृति'},
+   nativeHints:{es:'cultura',zh:'文化',vi:'văn hóa',tl:'kultura',ko:'문화',ar:'ثقافة',hi:'संस्कृति',pt:'cultura',ru:'культура',ja:'文化',bn:'সংস্কৃতি',so:'dhaqanka',ne:'संस्कृति',ur:'ثقافت',fr:'la culture',th:'วัฒนธรรม'},
    options:['The traditions, food, music, and customs of a group of people','A type of school subject','A kind of sport','A large building'],
    correct:0},
 
   {id:28,tier:1,unit:'Unit 6',unitName:'Our Cultures',type:'native-match',
    question:'Which English word matches the meaning?',
-   nativeWord:{es:'la abuela',zh:'祖母',vi:'bà ngoại',tl:'lola',ko:'할머니',ar:'الجدة',hi:'दादी',pt:'avó',ru:'бабушка',ja:'おばあさん',bn:'দাদি',so:'ayeeyo',ne:'हजुरआमा'},
+   nativeWord:{es:'la abuela',zh:'祖母',vi:'bà ngoại',tl:'lola',ko:'할머니',ar:'الجدة',hi:'दादी',pt:'avó',ru:'бабушка',ja:'おばあさん',bn:'দাদি',so:'ayeeyo',ne:'हजुरआमा',ur:'دادی / نانی',fr:'la grand-mère',th:'ย่า / ยาย'},
    fallback:'grandmother (your mother\'s or father\'s mother)',
    options:['aunt','mother','grandmother','sister'],
    correct:2},
@@ -603,8 +606,7 @@ const QUESTIONS = [
      ja:'学校、地域社会、そして周りの世界について考えてください。大切なことで学んだことは何ですか？それはあなたの生活とどのようにつながっていますか？',
      bn:'স্কুল, আপনার সম্প্রদায় এবং আপনার চারপাশের বিশ্ব সম্পর্কে ভাবুন। আপনি কী গুরুত্বপূর্ণ কিছু শিখেছেন? এটি আপনার জীবনের সাথে কীভাবে সংযুক্ত?',
      so:'Fikiir iskuulka, bulshadaada, iyo adduunka ku xeeran. Maxaad baratay oo muhiim ah? Sidee bay xiriirta noloshada?',
-     ne:'विद्यालय, आफ्नो समुदाय र आफ्नो वरिपरिको संसारको बारेमा सोच्नुहोस्। तपाईंले के महत्त्वपूर्ण कुरा सिक्नुभयो? यो तपाईंको जीवनसँग कसरी जोडिन्छ?'
-   },
+     ne:'विद्यालय, आफ्नो समुदाय र आफ्नो वरिपरिको संसारको बारेमा सोच्नुहोस्। तपाईंले के महत्त्वपूर्ण कुरा सिक्नुभयो? यो तपाईंको जीवनसँग कसरी जोडिन्छ?',ur:'اسکول، اپنی کمیونٹی اور اپنے اردگرد کی دنیا کے بارے میں سوچیں۔ آپ نے کون سی اہم بات سیکھی ہے؟ اس کا آپ کی زندگی سے کیا تعلق ہے؟',fr:'Pense à l\'école, à ta communauté et au monde qui t\'entoure. Qu\'as-tu appris d\'important ? Quel rapport cela a-t-il avec ta vie ?',th:'ลองคิดถึงโรงเรียน ชุมชนของคุณ และโลกรอบตัวคุณ สิ่งสำคัญที่คุณได้เรียนรู้คืออะไร และมันเชื่อมโยงกับชีวิตของคุณอย่างไร'},
    wordBank:[
      {en:'school'},{en:'family'},{en:'community'},{en:'culture'},{en:'language'},
      {en:'learn'},{en:'help'},{en:'share'},{en:'tradition'},{en:'country'},
@@ -1327,6 +1329,7 @@ async function generateStudentReport() {
     + '<\/script>'
     + '</body></html>';
   return html;
+}
 
 async function uploadStudentReport(htmlContent) {
   const name = (state.studentName || 'student').replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_]/g,'');
@@ -1620,7 +1623,6 @@ updateProgress();
         }
       };
     }
-  }
   if(document.readyState === 'loading'){
     document.addEventListener('DOMContentLoaded', initDashboard);
   } else {
