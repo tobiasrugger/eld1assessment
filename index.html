@@ -182,6 +182,12 @@ textarea{min-height:100px;}
       <input type="text" id="student-name" placeholder="First Last">
     </div>
     <div class="student-field">
+      <label>Your school email:</label>
+      <input type="email" id="gEmail" placeholder="you@s.sfusd.edu"
+        inputmode="email" autocomplete="email" autocapitalize="off"
+        style="width:100%;border:2px solid var(--gray-200);border-radius:var(--radius-sm);padding:.75rem;font-family:var(--font);font-size:.95rem;color:var(--gray-900);">
+    </div>
+    <div class="student-field">
       <label>Period / Class:</label>
       <select id="student-period" style="width:100%;border:2px solid var(--gray-200);border-radius:var(--radius-sm);padding:.75rem;font-family:var(--font);font-size:.95rem;color:var(--gray-900);">
       <option value="">Select period...</option>
@@ -201,7 +207,7 @@ textarea{min-height:100px;}
 </div>
 
 
-<div class="screen" id="screen-question">
+<div class="screen" id="screen-question" translate="no">
   <div id="tier-banner" style="border-radius:var(--radius);padding:.75rem 1.25rem;margin-bottom:.75rem;display:flex;align-items:center;gap:.6rem;"></div>
   <div class="card" id="question-card"></div>
   <div id="feedback-area"></div>
@@ -647,8 +653,28 @@ function showScreen(id){
 }
 
 function startAssessment(){
-  state.studentName = document.getElementById('student-name').value.trim();
-  state.studentPeriod = document.getElementById('student-period').value.trim();
+  const nm  = document.getElementById('student-name').value.trim();
+  const raw = document.getElementById('gEmail').value.trim().toLowerCase();
+  const per = document.getElementById('student-period').value.trim();
+  let err = document.getElementById('gateErr');
+  if(!err){
+    err = document.createElement('div');
+    err.id = 'gateErr';
+    err.style.cssText = 'color:#B91C1C;font-weight:700;font-size:.85rem;margin-top:.5rem;';
+    document.getElementById('student-period').parentNode.appendChild(err);
+  }
+  if(nm.length < 2){ err.textContent = 'Please write your name.'; return; }
+  if(!validMail(raw)){ err.textContent = 'Use your school email \u2014 it ends with @s.sfusd.edu'; return; }
+  if(!per){ err.textContent = 'Please choose your period.'; return; }
+  err.textContent = '';
+  const email = canonMail(raw);
+  recordAlias(raw, email);
+  seedStudent(nm, email, per);
+  try{ localStorage.setItem('gal_student_email', email); }catch(e){}
+  window.student = { name:nm, email:email, period:per };
+  state.studentName   = nm;
+  state.studentEmail  = email;
+  state.studentPeriod = per;
   state.lang = document.getElementById('lang-select').value;
   goToQuestion(0);
 }
@@ -1366,6 +1392,7 @@ async function submitToDashboard(reportUrl){
   const payload = {
     action: 'submitAssessment',
     studentName: state.studentName,
+    studentEmail: state.studentEmail || '',
     period: state.studentPeriod,
     lang: state.lang,
     mode: MODE,
@@ -1627,6 +1654,222 @@ updateProgress();
     document.addEventListener('DOMContentLoaded', initDashboard);
   } else {
     initDashboard();
+  }
+})();
+</script>
+<span id="canary" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden">the quick brown fox jumps over the lazy dog</span>
+<script>
+/* ============ Galileo standard: identity, directions, tap words, canary ============ */
+(function(){
+  /* some pages in this family define SLUG, some do not */
+  var PAGE_SLUG=(typeof SLUG!=='undefined'&&SLUG)?SLUG:'arrival-index';
+  var CANON_DOMAIN='@s.sfusd.edu', ROSTER=[];
+  var PROXY='https://script.google.com/macros/s/AKfycbwbFr3oopIITlxKDhI5wGhEZdomWc3tmB5ZSK6NpBVisPAz-CMA4uKiruXDkCEU3T0Q/exec';
+  function ME_(){ return (typeof student!=='undefined'&&student&&student.email)?student:null; }
+  window.cleanMail=function(x){ return String(x||'').trim().toLowerCase(); };
+  window.localPart=function(e){ return cleanMail(e).split('@')[0]; };
+  window.validMail=function(e){ return /^[^@\s]+@(s\.)?sfusd\.edu$/.test(cleanMail(e)); };
+  window.canonMail=function(raw){
+    var lp=localPart(raw), i;
+    for(i=0;i<ROSTER.length;i++){ if(localPart(ROSTER[i].email)===lp) return cleanMail(ROSTER[i].email); }
+    return lp+CANON_DOMAIN;
+  };
+  function head(pref){
+    var h={'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json'};
+    if(pref) h['Prefer']=pref; return h;
+  }
+  window.recordAlias=function(alias, canon){
+    if(!alias||alias===canon) return;
+    fetch(SUPA_URL+'/rest/v1/student_aliases?on_conflict=alias_email',{
+      method:'POST', headers:head('resolution=merge-duplicates,return=minimal'),
+      body:JSON.stringify([{alias_email:alias, email:canon}])}).catch(function(){});
+  };
+  window.seedStudent=function(name,email,period){
+    fetch(SUPA_URL+'/rest/v1/students?on_conflict=email',{
+      method:'POST', headers:head('resolution=merge-duplicates,return=minimal'),
+      body:JSON.stringify([{email:email, name:name, period:period}])}).catch(function(){});
+  };
+  fetch(SUPA_URL+'/rest/v1/students?select=name,email,period&order=name',{headers:head()})
+    .then(function(r){ return r.ok?r.json():[]; })
+    .then(function(rows){ ROSTER=rows||[]; }).catch(function(){});
+
+  /* prefill from a sign-in anywhere else on the site */
+  try{
+    var saved=JSON.parse(localStorage.getItem('arrival_student')||'null');
+    if(saved&&saved.email){
+      if(document.getElementById('gName')) document.getElementById('gName').value=saved.name||'';
+      if(document.getElementById('gEmail')) document.getElementById('gEmail').value=saved.email;
+      if(saved.period&&document.getElementById('gPeriod')) document.getElementById('gPeriod').value=String(saved.period);
+    } else {
+      var g=localStorage.getItem('gal_student_email');
+      if(g&&document.getElementById('gEmail')) document.getElementById('gEmail').value=g;
+    }
+  }catch(e){}
+
+  /* ---------- translate through the proxy ---------- */
+  var tcache={};
+  var C2N={es:'Spanish',zh:'Chinese (Simplified)','zh-CN':'Chinese (Simplified)',ar:'Arabic',
+    vi:'Vietnamese',ru:'Russian',ur:'Urdu',tl:'Tagalog',fr:'French',ko:'Korean',hi:'Hindi',
+    so:'Somali',ne:'Nepali',th:'Thai'};
+  function tr(text, code){
+    var lang=(!code||code==='none')?'':(C2N[code]||code);
+    var key=text+'|'+lang;
+    if(tcache[key]) return Promise.resolve(tcache[key]);
+    var url=PROXY+'?action=translate&idiom='+encodeURIComponent(text)+'&meaning=&lang='+encodeURIComponent(lang);
+    return fetch(url).then(function(r){return r.json();}).then(function(d){
+      if(!d||!d.ok||!d.translation) return null;
+      tcache[key]=d.translation; return d.translation;
+    }).catch(function(){return null;});
+  }
+
+  /* ---------- directions in the student's language ---------- */
+  var DIR_ON=false, SENT={};
+  try{ DIR_ON=localStorage.getItem('song_dir')==='1'; }catch(e){}
+  function logReveal(k, lang){
+    if(!ME_()) return;
+    var sig=k+'|'+lang; if(SENT[sig]) return; SENT[sig]=true;
+    fetch(SUPA_URL+'/rest/v1/instruction_reveals',{
+      method:'POST', headers:head('return=minimal'),
+      body:JSON.stringify([{email:ME_().email, set_slug:PAGE_SLUG, activity:k, lang:lang}])}).catch(function(){});
+  }
+  function showDirections(){
+    var lang=document.getElementById('lang-select').value;
+    var list=document.querySelectorAll('[data-dir]');
+    Array.prototype.forEach.call(list,function(p){
+      var out=p.querySelector('.dirtr');
+      if(!out){ out=document.createElement('span'); out.className='dirtr'; p.appendChild(out); }
+      if(!DIR_ON||!lang){ out.textContent=''; return; }
+      var k=p.getAttribute('data-dir'), en=p.getAttribute('data-en')||'';
+      out.textContent='…';
+      tr(en, lang).then(function(t){
+        out.textContent=t?(t.equiv||t.meaning||''):'';
+        if(out.textContent) logReveal(k, lang);
+      });
+    });
+  }
+  var dirBtn=document.getElementById('btn-dir');
+  if(dirBtn){
+    dirBtn.classList.toggle('on', DIR_ON);
+    dirBtn.addEventListener('click',function(){
+      DIR_ON=!DIR_ON;
+      try{ localStorage.setItem('song_dir', DIR_ON?'1':'0'); }catch(e){}
+      dirBtn.classList.toggle('on', DIR_ON);
+      showDirections();
+    });
+  }
+  var langSel=document.getElementById('lang-select');
+  if(langSel) langSel.addEventListener('change', function(){ if(DIR_ON) showDirections(); });
+  if(DIR_ON) setTimeout(showDirections, 600);
+
+  /* ---------- tap any word ---------- */
+  var TAP_ON=false;
+  try{ TAP_ON=localStorage.getItem('song_tap')==='1'; }catch(e){}
+  function wrapWords(root){
+    if(root.getAttribute('data-wrapped')) return;
+    root.setAttribute('data-wrapped','1');
+    var walker=document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null), nodes=[], n;
+    while((n=walker.nextNode())) if(n.nodeValue.trim()) nodes.push(n);
+    nodes.forEach(function(node){
+      if(node.parentNode.closest('textarea,input,button,select,.wt-tap')) return;
+      var frag=document.createDocumentFragment();
+      node.nodeValue.split(/(\s+)/).forEach(function(piece){
+        if(!piece.trim()){ frag.appendChild(document.createTextNode(piece)); return; }
+        var s=document.createElement('span');
+        s.className='wt-tap'; s.textContent=piece;
+        frag.appendChild(s);
+      });
+      node.parentNode.replaceChild(frag, node);
+    });
+  }
+  function tapTargets(){ return document.querySelectorAll('[data-tap]'); }
+  function setTap(on){
+    TAP_ON=on;
+    try{ localStorage.setItem('song_tap', on?'1':'0'); }catch(e){}
+    document.body.classList.toggle('tap-on', on);
+    var b=document.getElementById('btn-tap');
+    if(b) b.classList.toggle('on', on);
+    if(on) Array.prototype.forEach.call(tapTargets(), wrapWords);
+  }
+  var tapBtn=document.getElementById('btn-tap');
+  if(tapBtn) tapBtn.addEventListener('click', function(){ setTap(!TAP_ON); });
+  document.addEventListener('click', function(ev){
+    if(!TAP_ON) return;
+    var s=ev.target.closest('.wt-tap'); if(!s) return;
+    var lang=document.getElementById('lang-select').value;
+    if(!lang){ document.getElementById('lang-select').focus(); return; }
+    var word=(s.textContent||'').replace(/[^A-Za-zÀ-ÿ'’-]/g,'');
+    if(!word) return;
+    var old=s.getAttribute('data-shown');
+    if(old){ s.removeAttribute('data-shown'); var t=s.querySelector('.wt-bub'); if(t) t.remove(); return; }
+    var bub=document.createElement('span'); bub.className='wt-bub'; bub.textContent='…';
+    s.appendChild(bub); s.setAttribute('data-shown','1');
+    tr(word, lang).then(function(t){ bub.textContent=t?(t.equiv||t.meaning||'?'):'?'; });
+  });
+  if(TAP_ON) setTimeout(function(){ setTap(true); }, 400);
+
+  /* ---------- quiet browser-translation canary ---------- */
+  var CANARY='the quick brown fox jumps over the lazy dog', TR_SENT='';
+  function detectTranslation(){
+    var c=document.getElementById('canary');
+    var got=c?(c.textContent||'').trim().toLowerCase():'';
+    var cls=document.documentElement.className||'';
+    var drift=(c&&got!==CANARY)?got:'';
+    if(!drift&&!/translated|notranslate-off/.test(cls)) return null;
+    return {observed:drift, html_lang:document.documentElement.lang||'', html_class:cls};
+  }
+  function checkTranslation(){
+    var d=detectTranslation();
+    if(!d||!ME_()) return;
+    var sig=d.observed+'|'+d.html_lang;
+    if(sig===TR_SENT) return;
+    TR_SENT=sig;
+    fetch(SUPA_URL+'/rest/v1/page_translation?on_conflict=email,set_slug',{
+      method:'POST', headers:head('resolution=merge-duplicates,return=minimal'),
+      body:JSON.stringify([{email:ME_().email, set_slug:PAGE_SLUG, translated:true,
+        observed:d.observed, html_lang:d.html_lang, html_class:d.html_class,
+        updated_at:new Date().toISOString()}])}).catch(function(){});
+  }
+  window.checkTranslation=checkTranslation;
+  setInterval(checkTranslation, 20000);
+  setTimeout(checkTranslation, 4000);
+})();
+</script>
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   ASSESSMENT SUPPORTS - one switch.
+     true   students may tap any word for a meaning and translate the
+            on-screen directions. Good for practice runs.
+     false  no lookups during the test. Sign-in, the browser-translation
+            canary and translate="no" protection stay on either way, so
+            the page still meets the Galileo standard.
+   Flip this single line. Nothing else needs to change.
+   ═══════════════════════════════════════════════════════════════ */
+const ALLOW_SUPPORTS = true;
+
+(function(){
+  try{
+    var g=localStorage.getItem('gal_student_email');
+    if(g && document.getElementById('gEmail')) document.getElementById('gEmail').value=g;
+  }catch(e){}
+  if(!ALLOW_SUPPORTS) return;
+  var q=document.getElementById('screen-question');
+  if(q) q.setAttribute('data-tap','1');
+  var ds=document.querySelectorAll('.question-prompt,.tier-banner,.intro-card p');
+  Array.prototype.forEach.call(ds,function(p,i){
+    p.setAttribute('data-dir','q'+i);
+    if(!p.getAttribute('data-en')) p.setAttribute('data-en',(p.textContent||'').trim().slice(0,300));
+  });
+  var row=document.querySelector('.lang-row');
+  if(row && !document.getElementById('btn-dir')){
+    var mk=function(id,label,title){
+      var b=document.createElement('button');
+      b.id=id; b.type='button'; b.textContent=label; b.title=title;
+      b.style.cssText='margin-left:.5rem;font-size:.8rem;padding:4px 10px;border-radius:14px;'+
+        'border:1.5px solid var(--gray-200);background:#fff;cursor:pointer;font-family:var(--font);font-weight:700;';
+      return b;
+    };
+    row.appendChild(mk('btn-dir','Directions','Show the directions in your language'));
+    row.appendChild(mk('btn-tap','Tap words','Tap any word for its meaning'));
   }
 })();
 </script>
