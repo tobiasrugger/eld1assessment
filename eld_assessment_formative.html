@@ -133,8 +133,21 @@ textarea{min-height:100px;}
 .img-opt svg{width:100%;height:110px;display:block;border-radius:8px;}
 .img-opt-label{font-size:.8rem;font-weight:700;text-align:center;padding:4px 0 2px;color:var(--gray-900);}
 @media(max-width:480px){.header h1{font-size:1.3rem;}.question-text{font-size:.95rem;}.score-tier-breakdown{grid-template-columns:1fr;}}
+
+#btn-dir.on,#btn-tap.on{background:#1F4D3D;color:#fff}
+.dirtr{display:block;margin-top:4px;color:#2f6f57;font-weight:700}
+.dirtr:empty{display:none}
+body.tap-on .wt-tap{cursor:pointer;border-bottom:1px dotted #8aa79a}
+body.tap-on .wt-tap:hover{background:#eef5f1}
+.wt-bub{display:inline-block;margin-left:5px;padding:1px 6px;border-radius:6px;
+  background:#1F4D3D;color:#fff;font-size:.85em;font-weight:700}
+
+#btn-dir,#btn-tap{font:inherit;font-weight:700;font-size:.85rem;padding:.4rem .7rem;
+  border-radius:8px;border:2px solid var(--gray-200);background:#fff;cursor:pointer;margin-right:.4rem}
+#btn-dir.on,#btn-tap.on{background:#1F4D3D;color:#fff;border-color:#1F4D3D}
 </style>
 </head>
+<span id="canary" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden">the quick brown fox jumps over the lazy dog</span>
 <body>
 <div class="mode-badge">Formative</div>
 <div class="header">
@@ -157,7 +170,7 @@ textarea{min-height:100px;}
     <p>This assessment covers all 6 units. There are three levels: Word Level, Sentence Level, and Writing. Use your native language for support. Take your time!</p>
     <div class="lang-row" style="margin-top:1.5rem;">
       <label>My language:</label>
-      <select class="lang-select" id="lang-select" onchange="setLanguage(this.value)">
+      <button id="btn-dir" title="Show the directions in your language">Directions</button><button id="btn-tap" title="Tap any word for its meaning">Tap words</button><select class="lang-select" id="lang-select" onchange="setLanguage(this.value)">
         <option value="en">English only</option>
         <option value="es">Español (Spanish)</option>
         <option value="zh">中文 (Chinese)</option>
@@ -172,11 +185,20 @@ textarea{min-height:100px;}
         <option value="bn">বাংলা (Bengali)</option>
         <option value="so">Soomaali (Somali)</option>
         <option value="ne">नेपाली (Nepali)</option>
+              <option value="ur">اردو</option>
+        <option value="fr">Français</option>
+        <option value="th">ไทย</option>
       </select>
     </div>
     <div class="student-field" style="margin-top:1rem;">
       <label>Your name:</label>
       <input type="text" id="student-name" placeholder="First Last">
+    </div>
+    <div class="student-field">
+      <label>Your school email:</label>
+      <input type="email" id="gEmail" placeholder="name@s.sfusd.edu"
+        inputmode="email" autocomplete="email" autocapitalize="off"
+        style="width:100%;border:2px solid var(--gray-200);border-radius:var(--radius-sm);padding:.75rem;font-family:var(--font);font-size:.95rem;color:var(--gray-900);">
     </div>
     <div class="student-field">
       <label>Period / Class:</label>
@@ -645,8 +667,27 @@ function showScreen(id){
 }
 
 function startAssessment(){
-  state.studentName = document.getElementById('student-name').value.trim();
-  state.studentPeriod = document.getElementById('student-period').value.trim();
+  const nm  = document.getElementById('student-name').value.trim();
+  const raw = (document.getElementById('gEmail').value || '').trim().toLowerCase();
+  const per = document.getElementById('student-period').value.trim();
+  let err = document.getElementById('gateErr');
+  if(!err){
+    err = document.createElement('div');
+    err.id = 'gateErr';
+    err.style.cssText = 'color:#B91C1C;font-weight:700;font-size:.85rem;margin-top:.5rem;';
+    document.getElementById('student-period').parentNode.appendChild(err);
+  }
+  if(nm.length < 2){ err.textContent = 'Please write your name.'; return; }
+  if(!e1Valid(raw)){ err.textContent = 'Use your school email \u2014 it ends with @s.sfusd.edu'; return; }
+  if(!per){ err.textContent = 'Please choose your period.'; return; }
+  err.textContent = '';
+  const email = e1Canon(raw);
+  e1Alias(raw, email);
+  e1Seed(nm, email, per);
+  try{ localStorage.setItem('gal_student_email', email); }catch(e){}
+  state.studentName = nm;
+  state.studentEmail = email;
+  state.studentPeriod = per;
   state.lang = document.getElementById('lang-select').value;
   goToQuestion(0);
 }
@@ -722,7 +763,7 @@ function renderQuestion(q){
   html += `<div class="question-num">Question ${state.currentQ+1} of ${QUESTIONS.length}</div>`;
 
   const hint = getNativeHint(q);
-  if(hint) html += `<div class="native-hint"><span>🌍</span> ${hint}</div>`;
+  if(hint) html += `<div class="native-hint" translate="yes"><span>🌍</span> ${hint}</div>`;
 
   switch(q.type){
     case 'vocab-mc': html += renderMC(q); break;
@@ -739,7 +780,7 @@ function renderQuestion(q){
 }
 
 function renderMC(q){
-  let html = `<div class="question-text">${q.question}</div><div class="options" id="options">`;
+  let html = `<div class="question-text" translate="no" data-tap="1">${q.question}</div><div class="options" translate="no" data-tap="1" id="options">`;
   ['A','B','C','D'].forEach((l,i)=>{
     html += `<button class="opt" id="opt-${i}" onclick="selectMC(${q.id},${i},${q.correct})">
       <span class="opt-letter">${l}</span>${q.options[i]}</button>`;
@@ -749,9 +790,9 @@ function renderMC(q){
 
 function renderNativeMatch(q){
   const nw = q.nativeWord[state.lang] || q.fallback;
-  let html = `<div class="question-text">${q.question}</div>`;
-  html += `<div class="native-hint" style="margin-bottom:1rem;">🌍 ${nw}</div>`;
-  html += `<div class="options" id="options">`;
+  let html = `<div class="question-text" translate="no" data-tap="1">${q.question}</div>`;
+  html += `<div class="native-hint" translate="yes" style="margin-bottom:1rem;">🌍 ${nw}</div>`;
+  html += `<div class="options" translate="no" data-tap="1" id="options">`;
   ['A','B','C','D'].forEach((l,i)=>{
     html += `<button class="opt" id="opt-${i}" onclick="selectMC(${q.id},${i},${q.correct})">
       <span class="opt-letter">${l}</span>${q.options[i]}</button>`;
@@ -760,7 +801,7 @@ function renderNativeMatch(q){
 }
 
 function renderPictureMatch(q){
-  let html = `<div class="question-text">${q.question}</div><div class="img-options" id="img-options">`;
+  let html = `<div class="question-text" translate="no" data-tap="1">${q.question}</div><div class="img-options" id="img-options">`;
   q.images.forEach((img,i)=>{
     const content = img.photo
       ? `<img src="${img.photo}" style="width:100%;height:110px;object-fit:cover;border-radius:8px;display:block;">`
@@ -771,9 +812,9 @@ function renderPictureMatch(q){
 }
 
 function renderVerbAgree(q){
-  let html = `<div class="question-text">${q.prompt}</div>`;
-  html += `<div class="question-text" style="color:var(--teal-dark);margin-bottom:1.25rem;">"${q.sentence}"</div>`;
-  html += `<div class="options" id="options">`;
+  let html = `<div class="question-text" translate="no" data-tap="1">${q.prompt}</div>`;
+  html += `<div class="question-text" translate="no" data-tap="1" style="color:var(--teal-dark);margin-bottom:1.25rem;">"${q.sentence}"</div>`;
+  html += `<div class="options" translate="no" data-tap="1" id="options">`;
   ['A','B','C','D'].forEach((l,i)=>{
     html += `<button class="opt" id="opt-${i}" onclick="selectMC(${q.id},${i},${q.correct})">
       <span class="opt-letter">${l}</span>${q.options[i]}</button>`;
@@ -786,9 +827,9 @@ function renderPrepSentence(q){
     ? `<img src="${q.photo}" style="width:100%;height:200px;object-fit:cover;display:block;">`
     : (SCENES[q.scene]||'');
   let html = `<div class="scene-wrap">${sceneContent}</div>`;
-  if(q.prepFocus) html += `<div class="native-hint" style="margin-bottom:.75rem;">🔑 Preposition: <strong>${q.prepFocus}</strong></div>`;
-  html += `<div class="question-text">${q.prompt}</div>`;
-  html += `<div class="options" id="options">`;
+  if(q.prepFocus) html += `<div class="native-hint" translate="yes" style="margin-bottom:.75rem;">🔑 Preposition: <strong>${q.prepFocus}</strong></div>`;
+  html += `<div class="question-text" translate="no" data-tap="1">${q.prompt}</div>`;
+  html += `<div class="options" translate="no" data-tap="1" id="options">`;
   ['A','B','C','D'].forEach((l,i)=>{
     html += `<button class="opt" id="opt-${i}" onclick="selectMC(${q.id},${i},${q.correct})">
       <span class="opt-letter">${l}</span>${q.options[i]}</button>`;
@@ -797,7 +838,7 @@ function renderPrepSentence(q){
 }
 
 function renderVocabWrite(q){
-  let html = `<div class="question-text">${q.prompt}</div>`;
+  let html = `<div class="question-text" translate="no" data-tap="1">${q.prompt}</div>`;
   html += `<div class="word-bank-wrap">
     <div class="wb-label">📚 Word Bank — tap to add:</div>
     <div class="word-bank" id="word-bank">`;
@@ -815,9 +856,9 @@ function renderVocabWrite(q){
 
 function renderEssay(q){
   const pt = q.promptTranslations && state.lang!=='en' ? q.promptTranslations[state.lang] : null;
-  let html = `<div class="question-text">${q.prompt}</div>`;
-  html += `<div class="question-text" style="color:var(--teal-dark);">"${q.question}"</div>`;
-  if(pt) html += `<div class="native-hint" style="margin-top:.5rem;">🌍 ${pt}</div>`;
+  let html = `<div class="question-text" translate="no" data-tap="1">${q.prompt}</div>`;
+  html += `<div class="question-text" translate="no" data-tap="1" style="color:var(--teal-dark);">"${q.question}"</div>`;
+  if(pt) html += `<div class="native-hint" translate="yes" style="margin-top:.5rem;">🌍 ${pt}</div>`;
   html += `<div class="word-bank-wrap" style="margin-top:1rem;">
     <div class="wb-label">📚 Word Bank:</div>
     <div class="word-bank" id="word-bank">`;
@@ -1034,7 +1075,7 @@ async function getAIWrittenFeedback(qid, text){
   } catch(e){
     document.getElementById('feedback-area').innerHTML =
       '<div class="feedback-box partial-fb"><div class="feedback-header partial-fb">Submitted</div>'
-      + '<div class="feedback-text">Your response was saved. Your teacher will review it.</div></div>';
+      + '<div class="feedback-text" translate="no" data-tap="1">Your response was saved. Your teacher will review it.</div></div>';
   }
 }
 
@@ -1048,7 +1089,7 @@ function showMCFeedback(isCorrect, text){
   document.getElementById('feedback-area').innerHTML =
     '<div class="feedback-box ' + cls + '">'
     + '<div class="feedback-header ' + cls + '">' + label + '</div>'
-    + '<div class="feedback-text">' + english + '</div>'
+    + '<div class="feedback-text" translate="no" data-tap="1">' + english + '</div>'
     + nativeHTML
     + '</div>';
 }
@@ -1065,8 +1106,8 @@ function showWrittenFeedback(fb){
     '<div class="feedback-box partial-fb">'
     + '<div class="feedback-header partial-fb">📋 Rubric Feedback</div>'
     + '<div class="rubric-marks">' + marksHTML + '</div>'
-    + '<div class="feedback-text" style="margin-top:.75rem;"><strong>What you did well:</strong> ' + (fb.strengths||'') + '</div>'
-    + '<div class="feedback-text" style="margin-top:.25rem;"><strong>To improve:</strong> ' + (fb.suggestion||'') + '</div>'
+    + '<div class="feedback-text" translate="no" data-tap="1" style="margin-top:.75rem;"><strong>What you did well:</strong> ' + (fb.strengths||'') + '</div>'
+    + '<div class="feedback-text" translate="no" data-tap="1" style="margin-top:.25rem;"><strong>To improve:</strong> ' + (fb.suggestion||'') + '</div>'
     + nativeHTML
     + '</div>';
 }
@@ -1327,6 +1368,7 @@ async function generateStudentReport() {
     + '<\/script>'
     + '</body></html>';
   return html;
+}
 
 async function uploadStudentReport(htmlContent) {
   const name = (state.studentName || 'student').replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_]/g,'');
@@ -1620,12 +1662,195 @@ updateProgress();
         }
       };
     }
-  }
   if(document.readyState === 'loading'){
     document.addEventListener('DOMContentLoaded', initDashboard);
   } else {
     initDashboard();
   }
+})();
+</script>
+  <script src="https://tobiasrugger.github.io/readings/track.js"></script>
+
+<script>
+/* ============ Galileo standard: identity, directions, tap words, canary ============ */
+(function(){
+  /* some pages in this family define SLUG, some do not */
+  var PAGE_SLUG=(typeof SLUG!=='undefined'&&SLUG)?SLUG:'eld1-assessment_formative';
+  var CANON_DOMAIN='@s.sfusd.edu', ROSTER=[];
+  /* some pages in this repo never defined these */
+  var SUPA_URL=(typeof window.SUPA_URL!=='undefined')?window.SUPA_URL:'https://lhmwtfyceilgndpygivj.supabase.co';
+  var SUPA_KEY=(typeof window.SUPA_KEY!=='undefined')?window.SUPA_KEY:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxobXd0ZnljZWlsZ25kcHlnaXZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxMzk5MDIsImV4cCI6MjA5MTcxNTkwMn0.0uIXyctHMfTN4doWYn2JJ260swD5b-t0T-oDMSIPtBU';
+  var PROXY='https://script.google.com/macros/s/AKfycbwbFr3oopIITlxKDhI5wGhEZdomWc3tmB5ZSK6NpBVisPAz-CMA4uKiruXDkCEU3T0Q/exec';
+  function ME_(){ return (typeof state!=='undefined'&&state&&state.studentEmail)?{email:state.studentEmail,name:state.studentName,period:state.studentPeriod}:null; }
+  window.cleanMail=function(x){ return String(x||'').trim().toLowerCase(); };
+  window.localPart=function(e){ return cleanMail(e).split('@')[0]; };
+  window.validMail=function(e){ return /^[^@\s]+@(s\.)?sfusd\.edu$/.test(cleanMail(e)); };
+  window.canonMail=function(raw){
+    var lp=localPart(raw), i;
+    for(i=0;i<ROSTER.length;i++){ if(localPart(ROSTER[i].email)===lp) return cleanMail(ROSTER[i].email); }
+    return lp+CANON_DOMAIN;
+  };
+  function head(pref){
+    var h={'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json'};
+    if(pref) h['Prefer']=pref; return h;
+  }
+  window.recordAlias=function(alias, canon){
+    if(!alias||alias===canon) return;
+    fetch(SUPA_URL+'/rest/v1/student_aliases?on_conflict=alias_email',{
+      method:'POST', headers:head('resolution=merge-duplicates,return=minimal'),
+      body:JSON.stringify([{alias_email:alias, email:canon}])}).catch(function(){});
+  };
+  window.seedStudent=function(name,email,period){
+    fetch(SUPA_URL+'/rest/v1/students?on_conflict=email',{
+      method:'POST', headers:head('resolution=ignore-duplicates,return=minimal'),
+      body:JSON.stringify([{email:email, name:name, period:period}])}).catch(function(){});
+  };
+  fetch(SUPA_URL+'/rest/v1/students?select=name,email,period&order=name',{headers:head()})
+    .then(function(r){ return r.ok?r.json():[]; })
+    .then(function(rows){ ROSTER=rows||[]; }).catch(function(){});
+
+  /* prefill from a sign-in anywhere else on the site */
+  try{
+    var saved=JSON.parse(localStorage.getItem('eld1_me')||'null');
+    if(saved&&saved.email){
+      if(document.getElementById('student-name')) document.getElementById('student-name').value=saved.name||'';
+      if(document.getElementById('gEmail')) document.getElementById('gEmail').value=saved.email;
+      if(saved.period&&document.getElementById('student-period')) document.getElementById('student-period').value=String(saved.period);
+    } else {
+      var g=localStorage.getItem('gal_student_email');
+      if(g&&document.getElementById('gEmail')) document.getElementById('gEmail').value=g;
+    }
+  }catch(e){}
+
+  window.e1Clean=cleanMail; window.e1Valid=validMail; window.e1Canon=canonMail;
+  window.e1Alias=recordAlias; window.e1Seed=seedStudent;
+
+  /* ---------- translate through the proxy ---------- */
+  var tcache={};
+  var C2N={es:'Spanish',zh:'Chinese (Simplified)','zh-CN':'Chinese (Simplified)',ar:'Arabic',
+    vi:'Vietnamese',ru:'Russian',ur:'Urdu',tl:'Tagalog',fr:'French',ko:'Korean',hi:'Hindi',
+    so:'Somali',ne:'Nepali',th:'Thai'};
+  function tr(text, code){
+    var lang=(!code||code==='none')?'':(C2N[code]||code);
+    var key=text+'|'+lang;
+    if(tcache[key]) return Promise.resolve(tcache[key]);
+    var url=PROXY+'?action=translate&idiom='+encodeURIComponent(text)+'&meaning=&lang='+encodeURIComponent(lang);
+    return fetch(url).then(function(r){return r.json();}).then(function(d){
+      if(!d||!d.ok||!d.translation) return null;
+      tcache[key]=d.translation; return d.translation;
+    }).catch(function(){return null;});
+  }
+
+  /* ---------- directions in the student's language ---------- */
+  var DIR_ON=false, SENT={};
+  try{ DIR_ON=localStorage.getItem('song_dir')==='1'; }catch(e){}
+  function logReveal(k, lang){
+    if(!ME_()) return;
+    var sig=k+'|'+lang; if(SENT[sig]) return; SENT[sig]=true;
+    fetch(SUPA_URL+'/rest/v1/instruction_reveals',{
+      method:'POST', headers:head('return=minimal'),
+      body:JSON.stringify([{email:ME_().email, set_slug:PAGE_SLUG, activity:k, lang:lang}])}).catch(function(){});
+  }
+  function showDirections(){
+    var lang=document.getElementById('lang-select').value;
+    var list=document.querySelectorAll('[data-dir]');
+    Array.prototype.forEach.call(list,function(p){
+      var out=p.querySelector('.dirtr');
+      if(!out){ out=document.createElement('span'); out.className='dirtr'; p.appendChild(out); }
+      if(!DIR_ON||!lang){ out.textContent=''; return; }
+      var k=p.getAttribute('data-dir'), en=p.getAttribute('data-en')||'';
+      out.textContent='…';
+      tr(en, lang).then(function(t){
+        out.textContent=t?(t.equiv||t.meaning||''):'';
+        if(out.textContent) logReveal(k, lang);
+      });
+    });
+  }
+  var dirBtn=document.getElementById('btn-dir');
+  if(dirBtn){
+    dirBtn.classList.toggle('on', DIR_ON);
+    dirBtn.addEventListener('click',function(){
+      DIR_ON=!DIR_ON;
+      try{ localStorage.setItem('song_dir', DIR_ON?'1':'0'); }catch(e){}
+      dirBtn.classList.toggle('on', DIR_ON);
+      showDirections();
+    });
+  }
+  var langSel=document.getElementById('lang-select');
+  if(langSel) langSel.addEventListener('change', function(){ if(DIR_ON) showDirections(); });
+  if(DIR_ON) setTimeout(showDirections, 600);
+
+  /* ---------- tap any word ---------- */
+  var TAP_ON=false;
+  try{ TAP_ON=localStorage.getItem('song_tap')==='1'; }catch(e){}
+  function wrapWords(root){
+    if(root.getAttribute('data-wrapped')) return;
+    root.setAttribute('data-wrapped','1');
+    var walker=document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null), nodes=[], n;
+    while((n=walker.nextNode())) if(n.nodeValue.trim()) nodes.push(n);
+    nodes.forEach(function(node){
+      if(node.parentNode.closest('textarea,input,button,select,.wt-tap')) return;
+      var frag=document.createDocumentFragment();
+      node.nodeValue.split(/(\s+)/).forEach(function(piece){
+        if(!piece.trim()){ frag.appendChild(document.createTextNode(piece)); return; }
+        var s=document.createElement('span');
+        s.className='wt-tap'; s.textContent=piece;
+        frag.appendChild(s);
+      });
+      node.parentNode.replaceChild(frag, node);
+    });
+  }
+  function tapTargets(){ return document.querySelectorAll('[data-tap]'); }
+  function setTap(on){
+    TAP_ON=on;
+    try{ localStorage.setItem('song_tap', on?'1':'0'); }catch(e){}
+    document.body.classList.toggle('tap-on', on);
+    var b=document.getElementById('btn-tap');
+    if(b) b.classList.toggle('on', on);
+    if(on) Array.prototype.forEach.call(tapTargets(), wrapWords);
+  }
+  var tapBtn=document.getElementById('btn-tap');
+  if(tapBtn) tapBtn.addEventListener('click', function(){ setTap(!TAP_ON); });
+  document.addEventListener('click', function(ev){
+    if(!TAP_ON) return;
+    var s=ev.target.closest('.wt-tap'); if(!s) return;
+    var lang=document.getElementById('lang-select').value;
+    if(!lang){ document.getElementById('lang-select').focus(); return; }
+    var word=(s.textContent||'').replace(/[^A-Za-zÀ-ÿ'’-]/g,'');
+    if(!word) return;
+    var old=s.getAttribute('data-shown');
+    if(old){ s.removeAttribute('data-shown'); var t=s.querySelector('.wt-bub'); if(t) t.remove(); return; }
+    var bub=document.createElement('span'); bub.className='wt-bub'; bub.textContent='…';
+    s.appendChild(bub); s.setAttribute('data-shown','1');
+    tr(word, lang).then(function(t){ bub.textContent=t?(t.equiv||t.meaning||'?'):'?'; });
+  });
+  if(TAP_ON) setTimeout(function(){ setTap(true); }, 400);
+
+  /* ---------- quiet browser-translation canary ---------- */
+  var CANARY='the quick brown fox jumps over the lazy dog', TR_SENT='';
+  function detectTranslation(){
+    var c=document.querySelector('#canary');
+    var got=c?(c.textContent||'').trim().toLowerCase():'';
+    var cls=document.documentElement.className||'';
+    var drift=(c&&got!==CANARY)?got:'';
+    if(!drift&&!/translated|notranslate-off/.test(cls)) return null;
+    return {observed:drift, html_lang:document.documentElement.lang||'', html_class:cls};
+  }
+  function checkTranslation(){
+    var d=detectTranslation();
+    if(!d||!ME_()) return;
+    var sig=d.observed+'|'+d.html_lang;
+    if(sig===TR_SENT) return;
+    TR_SENT=sig;
+    fetch(SUPA_URL+'/rest/v1/page_translation?on_conflict=email,set_slug',{
+      method:'POST', headers:head('resolution=merge-duplicates,return=minimal'),
+      body:JSON.stringify([{email:ME_().email, set_slug:PAGE_SLUG, translated:true,
+        observed:d.observed, html_lang:d.html_lang, html_class:d.html_class,
+        updated_at:new Date().toISOString()}])}).catch(function(){});
+  }
+  window.checkTranslation=checkTranslation;
+  setInterval(checkTranslation, 20000);
+  setTimeout(checkTranslation, 4000);
 })();
 </script>
 </body>

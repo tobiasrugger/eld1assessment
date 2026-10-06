@@ -86,8 +86,21 @@ textarea{min-height:80px;resize:vertical;}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
 @media(max-width:480px){.header h1{font-size:1.2rem;}}
+
+#btn-dir.on,#btn-tap.on{background:#1F4D3D;color:#fff}
+.dirtr{display:block;margin-top:4px;color:#2f6f57;font-weight:700}
+.dirtr:empty{display:none}
+body.tap-on .wt-tap{cursor:pointer;border-bottom:1px dotted #8aa79a}
+body.tap-on .wt-tap:hover{background:#eef5f1}
+.wt-bub{display:inline-block;margin-left:5px;padding:1px 6px;border-radius:6px;
+  background:#1F4D3D;color:#fff;font-size:.85em;font-weight:700}
+
+#btn-dir,#btn-tap{font:inherit;font-weight:700;font-size:.85rem;padding:.4rem .7rem;
+  border-radius:8px;border:2px solid var(--gray-200);background:#fff;cursor:pointer;margin-right:.4rem}
+#btn-dir.on,#btn-tap.on{background:#1F4D3D;color:#fff;border-color:#1F4D3D}
 </style>
 </head>
+<span id="canary" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden">the quick brown fox jumps over the lazy dog</span>
 <body>
 
 <div class="mode-badge" id="mode-badge"></div>
@@ -112,7 +125,7 @@ textarea{min-height:80px;resize:vertical;}
     <p id="intro-desc">Answer questions about this lesson's vocabulary words.</p>
     <div style="display:flex;align-items:center;gap:8px;margin:1rem 0;">
       <label style="font-size:12px;font-weight:700;color:var(--gray-500);white-space:nowrap;">My language:</label>
-      <select id="lang-select">
+      <button id="btn-dir" title="Show the directions in your language">Directions</button><button id="btn-tap" title="Tap any word for its meaning">Tap words</button><select id="lang-select">
         <option value="" disabled selected style="color:#999;font-style:italic;">Choose your language...</option>
         <option value="en">English</option>
         <option value="es">Español</option>
@@ -125,9 +138,14 @@ textarea{min-height:80px;resize:vertical;}
         <option value="pt">Português</option>
         <option value="hi">हिन्दी</option>
         <option value="ne">नेपाली</option>
+              <option value="ur">اردو</option>
+        <option value="fr">Français</option>
+        <option value="so">Soomaali</option>
+        <option value="th">ไทย</option>
       </select>
     </div>
     <div class="field"><label>Your name:</label><input type="text" id="student-name" placeholder="First Last"></div>
+    <div class="field"><label>Your school email:</label><input type="email" id="gEmail" placeholder="name@s.sfusd.edu" inputmode="email" autocomplete="email" autocapitalize="off"></div>
     <div class="field"><label>Period:</label>
       <select id="student-period">
         <option value="">Select period...</option>
@@ -276,7 +294,7 @@ function renderQuestion(q) {
   if (lang !== 'en' && q.word) {
     const col = LANG_COL[lang];
     const tr = col && q.word[col];
-    if (tr) html += '<div class="native-hint">🌍 ' + tr + '</div>';
+    if (tr) html += '<div class="native-hint" translate="yes">🌍 ' + tr + '</div>';
   }
 
   if (q.type === 'image-pick') html += renderImagePick(q);
@@ -290,7 +308,7 @@ function renderQuestion(q) {
 }
 
 function renderImagePick(q) {
-  let html = '<div class="question-text">Tap the picture for: <strong>' + q.word.word + '</strong></div>';
+  let html = '<div class="question-text" translate="no" data-tap="1">Tap the picture for: <strong>' + q.word.word + '</strong></div>';
   html += '<div class="img-grid" id="img-grid">';
   q.opts.forEach(function(opt, i) {
     if (opt.image_url) {
@@ -315,9 +333,9 @@ function renderNativeMatch(q) {
   var col = LANG_COL[lang] || 'tr_es';
   var nw = q.word[col] || q.word.tr_es || '?';
   var letters = ['A','B','C','D'];
-  var html = '<div class="question-text">Which English word matches this?</div>';
-  html += '<div class="native-hint" style="font-size:1.1rem;justify-content:center;"><strong>' + nw + '</strong></div>';
-  html += '<div class="options" style="margin-top:1rem;">';
+  var html = '<div class="question-text" translate="no" data-tap="1">Which English word matches this?</div>';
+  html += '<div class="native-hint" translate="yes" style="font-size:1.1rem;justify-content:center;"><strong>' + nw + '</strong></div>';
+  html += '<div class="options" translate="no" data-tap="1" style="margin-top:1rem;">';
   q.opts.forEach(function(opt, i) {
     html += '<button class="opt" data-qid="' + q.id + '" data-chosen="' + opt.word_id + '" data-correct="' + q.word.word_id + '" onclick="handleMCClick(this)">'
       + '<span class="opt-letter">' + letters[i] + '</span>' + opt.word + '</button>';
@@ -329,10 +347,10 @@ function renderNativeMatch(q) {
 function renderFillIn(q) {
   var letters = ['A','B','C','D'];
   var sentence = q.sentence.replace('___', '<span style="background:#FEF3C7;padding:2px 6px;border-radius:4px;font-style:italic;">______</span>');
-  var html = '<div class="question-text">Choose the word that completes the sentence:</div>';
-  html += '<div class="question-text" style="color:var(--teal-dark);font-size:.95rem;margin-bottom:1.25rem;">"' + sentence + '"</div>';
+  var html = '<div class="question-text" translate="no" data-tap="1">Choose the word that completes the sentence:</div>';
+  html += '<div class="question-text" translate="no" data-tap="1" style="color:var(--teal-dark);font-size:.95rem;margin-bottom:1.25rem;">"' + sentence + '"</div>';
   if (q.word.image_url) html += '<img src="' + q.word.image_url + '" class="vocab-image" alt="' + q.word.word + '" loading="lazy">';
-  html += '<div class="options">';
+  html += '<div class="options" translate="no" data-tap="1">';
   q.opts.forEach(function(opt, i) {
     html += '<button class="opt" data-qid="' + q.id + '" data-chosen="' + opt.word_id + '" data-correct="' + q.word.word_id + '" onclick="handleMCClick(this)">'
       + '<span class="opt-letter">' + letters[i] + '</span>' + opt.word + '</button>';
@@ -342,7 +360,7 @@ function renderFillIn(q) {
 }
 
 function renderWrite(q) {
-  let html = '<div class="question-text">Write 1–3 sentences using at least 3 of these words:</div>';
+  let html = '<div class="question-text" translate="no" data-tap="1">Write 1–3 sentences using at least 3 of these words:</div>';
   html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:1rem;">';
   q.wordBank.forEach(function(w, i) {
     html += '<button class="wb-btn" data-word="' + w + '" data-idx="' + i + '" onclick="handleWBClick(this)" style="background:var(--purple-light);color:var(--purple);border:none;border-radius:20px;padding:4px 12px;font-size:.82rem;font-weight:700;cursor:pointer;font-family:var(--font);">' + w + '</button>';
@@ -466,7 +484,7 @@ async function getAIFeedback(isCorrect, context, qid) {
     document.getElementById('feedback-area').innerHTML =
       '<div class="feedback-box ' + (isCorrect?'fb-correct':'fb-incorrect') + '">'
       + '<div class="fb-header" style="color:' + (isCorrect?'var(--green)':'var(--coral)') + ';">' + (isCorrect?'Correct!':'Not quite') + '</div>'
-      + '<div class="fb-text">' + eng + '</div>'
+      + '<div class="fb-text" translate="no" data-tap="1">' + eng + '</div>'
       + (nat ? '<div class="fb-native">🌍 ' + nat + '</div>' : '')
       + '</div>';
   } catch(e) {
@@ -490,15 +508,15 @@ async function getAIWrittenFeedback(text) {
     document.getElementById('feedback-area').innerHTML =
       '<div class="feedback-box fb-neutral">'
       + '<div class="fb-header" style="color:var(--amber);">Writing Feedback</div>'
-      + '<div class="fb-text"><strong>Strong:</strong> ' + (fb.strength||'') + '</div>'
-      + '<div class="fb-text" style="margin-top:.25rem;"><strong>Try:</strong> ' + (fb.tip||'') + '</div>'
+      + '<div class="fb-text" translate="no" data-tap="1"><strong>Strong:</strong> ' + (fb.strength||'') + '</div>'
+      + '<div class="fb-text" translate="no" data-tap="1" style="margin-top:.25rem;"><strong>Try:</strong> ' + (fb.tip||'') + '</div>'
       + '<div style="font-size:.8rem;color:var(--teal-dark);font-weight:700;margin-top:.5rem;">Vocabulary: ' + (fb.score||'—') + '/4</div>'
       + (fb.native ? '<div class="fb-native">🌍 ' + fb.native + '</div>' : '')
       + '</div>';
     state.answers['t3_write'].score = fb.score;
   } catch(e) {
     document.getElementById('feedback-area').innerHTML =
-      '<div class="feedback-box fb-neutral"><div class="fb-text">Response saved. Your teacher will review it.</div></div>';
+      '<div class="feedback-box fb-neutral"><div class="fb-text" translate="no" data-tap="1">Response saved. Your teacher will review it.</div></div>';
   }
 }
 
@@ -570,9 +588,28 @@ function showScreen(id) {
   window.scrollTo(0,0);
 }
 
-function startAssessment() {
-  state.studentName = document.getElementById('student-name').value.trim();
-  state.studentPeriod = document.getElementById('student-period').value;
+function startAssessment(){
+  const nm  = document.getElementById('student-name').value.trim();
+  const raw = (document.getElementById('gEmail').value || '').trim().toLowerCase();
+  const per = document.getElementById('student-period').value.trim();
+  let err = document.getElementById('gateErr');
+  if(!err){
+    err = document.createElement('div');
+    err.id = 'gateErr';
+    err.style.cssText = 'color:#B91C1C;font-weight:700;font-size:.85rem;margin-top:.5rem;';
+    document.getElementById('student-period').parentNode.appendChild(err);
+  }
+  if(nm.length < 2){ err.textContent = 'Please write your name.'; return; }
+  if(!e1Valid(raw)){ err.textContent = 'Use your school email \u2014 it ends with @s.sfusd.edu'; return; }
+  if(!per){ err.textContent = 'Please choose your period.'; return; }
+  err.textContent = '';
+  const email = e1Canon(raw);
+  e1Alias(raw, email);
+  e1Seed(nm, email, per);
+  try{ localStorage.setItem('gal_student_email', email); }catch(e){}
+  state.studentName = nm;
+  state.studentEmail = email;
+  state.studentPeriod = per;
   state.lang = document.getElementById('lang-select').value;
   buildQuestions();
   goToQuestion(0);
@@ -653,6 +690,190 @@ async function saveResults(correct, total, pct) {
 }
 
 updateProgress();
+</script>
+  <script src="https://tobiasrugger.github.io/readings/track.js"></script>
+
+<script>
+/* ============ Galileo standard: identity, directions, tap words, canary ============ */
+(function(){
+  /* some pages in this family define SLUG, some do not */
+  var PAGE_SLUG=(typeof SLUG!=='undefined'&&SLUG)?SLUG:'eld1-lesson_assessment';
+  var CANON_DOMAIN='@s.sfusd.edu', ROSTER=[];
+  /* some pages in this repo never defined these */
+  var SUPA_URL=(typeof window.SUPA_URL!=='undefined')?window.SUPA_URL:'https://lhmwtfyceilgndpygivj.supabase.co';
+  var SUPA_KEY=(typeof window.SUPA_KEY!=='undefined')?window.SUPA_KEY:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxobXd0ZnljZWlsZ25kcHlnaXZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxMzk5MDIsImV4cCI6MjA5MTcxNTkwMn0.0uIXyctHMfTN4doWYn2JJ260swD5b-t0T-oDMSIPtBU';
+  var PROXY='https://script.google.com/macros/s/AKfycbwbFr3oopIITlxKDhI5wGhEZdomWc3tmB5ZSK6NpBVisPAz-CMA4uKiruXDkCEU3T0Q/exec';
+  function ME_(){ return (typeof state!=='undefined'&&state&&state.studentEmail)?{email:state.studentEmail,name:state.studentName,period:state.studentPeriod}:null; }
+  window.cleanMail=function(x){ return String(x||'').trim().toLowerCase(); };
+  window.localPart=function(e){ return cleanMail(e).split('@')[0]; };
+  window.validMail=function(e){ return /^[^@\s]+@(s\.)?sfusd\.edu$/.test(cleanMail(e)); };
+  window.canonMail=function(raw){
+    var lp=localPart(raw), i;
+    for(i=0;i<ROSTER.length;i++){ if(localPart(ROSTER[i].email)===lp) return cleanMail(ROSTER[i].email); }
+    return lp+CANON_DOMAIN;
+  };
+  function head(pref){
+    var h={'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json'};
+    if(pref) h['Prefer']=pref; return h;
+  }
+  window.recordAlias=function(alias, canon){
+    if(!alias||alias===canon) return;
+    fetch(SUPA_URL+'/rest/v1/student_aliases?on_conflict=alias_email',{
+      method:'POST', headers:head('resolution=merge-duplicates,return=minimal'),
+      body:JSON.stringify([{alias_email:alias, email:canon}])}).catch(function(){});
+  };
+  window.seedStudent=function(name,email,period){
+    fetch(SUPA_URL+'/rest/v1/students?on_conflict=email',{
+      method:'POST', headers:head('resolution=ignore-duplicates,return=minimal'),
+      body:JSON.stringify([{email:email, name:name, period:period}])}).catch(function(){});
+  };
+  fetch(SUPA_URL+'/rest/v1/students?select=name,email,period&order=name',{headers:head()})
+    .then(function(r){ return r.ok?r.json():[]; })
+    .then(function(rows){ ROSTER=rows||[]; }).catch(function(){});
+
+  /* prefill from a sign-in anywhere else on the site */
+  try{
+    var saved=JSON.parse(localStorage.getItem('eld1_me')||'null');
+    if(saved&&saved.email){
+      if(document.getElementById('student-name')) document.getElementById('student-name').value=saved.name||'';
+      if(document.getElementById('gEmail')) document.getElementById('gEmail').value=saved.email;
+      if(saved.period&&document.getElementById('student-period')) document.getElementById('student-period').value=String(saved.period);
+    } else {
+      var g=localStorage.getItem('gal_student_email');
+      if(g&&document.getElementById('gEmail')) document.getElementById('gEmail').value=g;
+    }
+  }catch(e){}
+
+  window.e1Clean=cleanMail; window.e1Valid=validMail; window.e1Canon=canonMail;
+  window.e1Alias=recordAlias; window.e1Seed=seedStudent;
+
+  /* ---------- translate through the proxy ---------- */
+  var tcache={};
+  var C2N={es:'Spanish',zh:'Chinese (Simplified)','zh-CN':'Chinese (Simplified)',ar:'Arabic',
+    vi:'Vietnamese',ru:'Russian',ur:'Urdu',tl:'Tagalog',fr:'French',ko:'Korean',hi:'Hindi',
+    so:'Somali',ne:'Nepali',th:'Thai'};
+  function tr(text, code){
+    var lang=(!code||code==='none')?'':(C2N[code]||code);
+    var key=text+'|'+lang;
+    if(tcache[key]) return Promise.resolve(tcache[key]);
+    var url=PROXY+'?action=translate&idiom='+encodeURIComponent(text)+'&meaning=&lang='+encodeURIComponent(lang);
+    return fetch(url).then(function(r){return r.json();}).then(function(d){
+      if(!d||!d.ok||!d.translation) return null;
+      tcache[key]=d.translation; return d.translation;
+    }).catch(function(){return null;});
+  }
+
+  /* ---------- directions in the student's language ---------- */
+  var DIR_ON=false, SENT={};
+  try{ DIR_ON=localStorage.getItem('song_dir')==='1'; }catch(e){}
+  function logReveal(k, lang){
+    if(!ME_()) return;
+    var sig=k+'|'+lang; if(SENT[sig]) return; SENT[sig]=true;
+    fetch(SUPA_URL+'/rest/v1/instruction_reveals',{
+      method:'POST', headers:head('return=minimal'),
+      body:JSON.stringify([{email:ME_().email, set_slug:PAGE_SLUG, activity:k, lang:lang}])}).catch(function(){});
+  }
+  function showDirections(){
+    var lang=document.getElementById('lang-select').value;
+    var list=document.querySelectorAll('[data-dir]');
+    Array.prototype.forEach.call(list,function(p){
+      var out=p.querySelector('.dirtr');
+      if(!out){ out=document.createElement('span'); out.className='dirtr'; p.appendChild(out); }
+      if(!DIR_ON||!lang){ out.textContent=''; return; }
+      var k=p.getAttribute('data-dir'), en=p.getAttribute('data-en')||'';
+      out.textContent='…';
+      tr(en, lang).then(function(t){
+        out.textContent=t?(t.equiv||t.meaning||''):'';
+        if(out.textContent) logReveal(k, lang);
+      });
+    });
+  }
+  var dirBtn=document.getElementById('btn-dir');
+  if(dirBtn){
+    dirBtn.classList.toggle('on', DIR_ON);
+    dirBtn.addEventListener('click',function(){
+      DIR_ON=!DIR_ON;
+      try{ localStorage.setItem('song_dir', DIR_ON?'1':'0'); }catch(e){}
+      dirBtn.classList.toggle('on', DIR_ON);
+      showDirections();
+    });
+  }
+  var langSel=document.getElementById('lang-select');
+  if(langSel) langSel.addEventListener('change', function(){ if(DIR_ON) showDirections(); });
+  if(DIR_ON) setTimeout(showDirections, 600);
+
+  /* ---------- tap any word ---------- */
+  var TAP_ON=false;
+  try{ TAP_ON=localStorage.getItem('song_tap')==='1'; }catch(e){}
+  function wrapWords(root){
+    if(root.getAttribute('data-wrapped')) return;
+    root.setAttribute('data-wrapped','1');
+    var walker=document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null), nodes=[], n;
+    while((n=walker.nextNode())) if(n.nodeValue.trim()) nodes.push(n);
+    nodes.forEach(function(node){
+      if(node.parentNode.closest('textarea,input,button,select,.wt-tap')) return;
+      var frag=document.createDocumentFragment();
+      node.nodeValue.split(/(\s+)/).forEach(function(piece){
+        if(!piece.trim()){ frag.appendChild(document.createTextNode(piece)); return; }
+        var s=document.createElement('span');
+        s.className='wt-tap'; s.textContent=piece;
+        frag.appendChild(s);
+      });
+      node.parentNode.replaceChild(frag, node);
+    });
+  }
+  function tapTargets(){ return document.querySelectorAll('[data-tap]'); }
+  function setTap(on){
+    TAP_ON=on;
+    try{ localStorage.setItem('song_tap', on?'1':'0'); }catch(e){}
+    document.body.classList.toggle('tap-on', on);
+    var b=document.getElementById('btn-tap');
+    if(b) b.classList.toggle('on', on);
+    if(on) Array.prototype.forEach.call(tapTargets(), wrapWords);
+  }
+  var tapBtn=document.getElementById('btn-tap');
+  if(tapBtn) tapBtn.addEventListener('click', function(){ setTap(!TAP_ON); });
+  document.addEventListener('click', function(ev){
+    if(!TAP_ON) return;
+    var s=ev.target.closest('.wt-tap'); if(!s) return;
+    var lang=document.getElementById('lang-select').value;
+    if(!lang){ document.getElementById('lang-select').focus(); return; }
+    var word=(s.textContent||'').replace(/[^A-Za-zÀ-ÿ'’-]/g,'');
+    if(!word) return;
+    var old=s.getAttribute('data-shown');
+    if(old){ s.removeAttribute('data-shown'); var t=s.querySelector('.wt-bub'); if(t) t.remove(); return; }
+    var bub=document.createElement('span'); bub.className='wt-bub'; bub.textContent='…';
+    s.appendChild(bub); s.setAttribute('data-shown','1');
+    tr(word, lang).then(function(t){ bub.textContent=t?(t.equiv||t.meaning||'?'):'?'; });
+  });
+  if(TAP_ON) setTimeout(function(){ setTap(true); }, 400);
+
+  /* ---------- quiet browser-translation canary ---------- */
+  var CANARY='the quick brown fox jumps over the lazy dog', TR_SENT='';
+  function detectTranslation(){
+    var c=document.querySelector('#canary');
+    var got=c?(c.textContent||'').trim().toLowerCase():'';
+    var cls=document.documentElement.className||'';
+    var drift=(c&&got!==CANARY)?got:'';
+    if(!drift&&!/translated|notranslate-off/.test(cls)) return null;
+    return {observed:drift, html_lang:document.documentElement.lang||'', html_class:cls};
+  }
+  function checkTranslation(){
+    var d=detectTranslation();
+    if(!d||!ME_()) return;
+    var sig=d.observed+'|'+d.html_lang;
+    if(sig===TR_SENT) return;
+    TR_SENT=sig;
+    fetch(SUPA_URL+'/rest/v1/page_translation?on_conflict=email,set_slug',{
+      method:'POST', headers:head('resolution=merge-duplicates,return=minimal'),
+      body:JSON.stringify([{email:ME_().email, set_slug:PAGE_SLUG, translated:true,
+        observed:d.observed, html_lang:d.html_lang, html_class:d.html_class,
+        updated_at:new Date().toISOString()}])}).catch(function(){});
+  }
+  window.checkTranslation=checkTranslation;
+  setInterval(checkTranslation, 20000);
+  setTimeout(checkTranslation, 4000);
+})();
 </script>
 </body>
 </html>
