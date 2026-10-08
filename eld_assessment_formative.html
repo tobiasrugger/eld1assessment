@@ -1669,7 +1669,32 @@ updateProgress();
   }
 })();
 </script>
-  <script src="https://tobiasrugger.github.io/readings/track.js"></script>
+<script>
+/* Standard sign-in handoff: the language chosen in the sign-in box is remembered as vocab_lang
+   (same key every readings page uses) and restored here, so one choice follows the student. */
+(function(){
+  var TO_LOCAL={'zh-CN':'zh','yue':'zh','ary':'ar'}, TO_STD={'zh':'zh-CN'};
+  function sel(){ return document.getElementById('lang-select'); }
+  function hasOpt(s,v){ for(var i=0;i<s.options.length;i++){ if(s.options[i].value===v) return true; } return false; }
+  function remember(v){ try{ localStorage.setItem('vocab_lang', v==='en' ? '' : (TO_STD[v]||v)); }catch(e){} }
+  function restore(){
+    var s=sel(); if(!s) return;
+    var L=''; try{ L=localStorage.getItem('vocab_lang')||''; }catch(e){}
+    if(L){ var v=TO_LOCAL[L]||L; if(hasOpt(s,v)){ s.value=v; if(window.state) state.lang=v; } }
+    var em=document.getElementById('gEmail');
+    if(em && !em.value){ try{ var e=localStorage.getItem('gal_student_email'); if(e) em.value=e; }catch(x){} }
+  }
+  function wire(){
+    restore();
+    var s=sel(); if(s) s.addEventListener('change', function(){ remember(s.value); });
+    var orig=window.startAssessment;
+    if(typeof orig==='function'){
+      window.startAssessment=function(){ var s=sel(); if(s&&s.value) remember(s.value); return orig.apply(this,arguments); };
+    }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', wire); else wire();
+})();
+</script>
 
 <script>
 /* ============ Galileo standard: identity, directions, tap words, canary ============ */
@@ -1853,5 +1878,6 @@ updateProgress();
   setTimeout(checkTranslation, 4000);
 })();
 </script>
+  <script src="https://tobiasrugger.github.io/readings/track.js"></script>
 </body>
 </html>
